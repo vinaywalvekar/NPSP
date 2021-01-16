@@ -64,6 +64,3 @@ Create a Contact and Add Engagement Plan
     ...                                              object_id=${data}[contact][Id]
     Click More Activity Button
     Check Activity Tasks                            Task_1    Sub_task_1.1    Task_2
-
-
-

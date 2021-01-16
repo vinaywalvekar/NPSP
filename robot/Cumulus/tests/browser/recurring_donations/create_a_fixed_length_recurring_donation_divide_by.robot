@@ -41,10 +41,3 @@ Create Fixed Length Recurring Donation Divide By
     Go To Page                               Details                    Opportunity                 object_id=${opportunity2}[0][Id]
     Select Tab                               Details
     Navigate To And Validate Field Value     Amount                     contains                    $100.00
-
-
-
-
-
-
- 

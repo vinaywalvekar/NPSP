@@ -78,6 +78,3 @@ Dont select match for contact new donation with grid changes
     ...    StageName=Closed Won
     Go To Page      Details        Contact        object_id=${contact}[Id]
     Validate Related Record Count     Opportunities     2
-
-
-

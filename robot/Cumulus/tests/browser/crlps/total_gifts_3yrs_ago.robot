@@ -51,5 +51,3 @@ Calculate CRLPs for Total Gifts 3 Years Ago
     ...                                           Contact
     ...                                           object_id=${contact}[Id]
     Verify Rollup Field Value                     Total Gifts Three Years Ago         $3,000.00     section=Contact Information
-
-

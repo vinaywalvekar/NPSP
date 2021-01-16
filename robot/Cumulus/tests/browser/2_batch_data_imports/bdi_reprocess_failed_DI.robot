@@ -148,8 +148,3 @@ Verify GAU Allocation Fails on Incorrect Data and Reprocess
     Select Tab                Related
     Verify Allocations        GAU Allocations
     ...    ${gau}[Name]=50.000000%
-
-
-
-
-

@@ -18,7 +18,7 @@ Setup Variables
     Set suite variable    ${first_name1}
     ${last_name1} =       Generate Random String
     Set suite variable    ${last_name1}
-    ${account} =          Generate Random String 
+    ${account} =          Generate Random String
     Set suite variable    ${account}
     ${org_ns} =           Get Org Namespace Prefix
     Set suite variable    ${org_ns}
@@ -28,11 +28,11 @@ Setup Variables
     Set suite variable    ${ns}
     ${check} =            Generate Random String
     Set suite variable    ${check}
-    
+
 Setup Test Data
     &{gau} =  API Create GAU
-    Set suite variable    &{gau}   
-    &{data_import} =  API Create DataImport     
+    Set suite variable    &{gau}
+    &{data_import} =  API Create DataImport
     ...        ${ns}Contact1_Firstname__c=${first_name1}
     ...        ${ns}Contact1_Lastname__c=${last_name1}
     ...        ${ns}Account1_Name__c=${account}
@@ -46,12 +46,12 @@ Setup Test Data
     ...        ${ns}GAU_Allocation_1_GAU__c=${gau}[Id]
     ...        ${ns}GAU_Allocation_1_Amount__c=100
     ...        ${ns}Opportunity_Contact_Role_1_Role__c=Honoree
-    Set Global Variable     &{data_import}       &{data_import} 
+    Set Global Variable     &{data_import}       &{data_import}
 
 *** Test Cases ***
 
-Create Data Import with Additional Objects via API and Verify Values 
-    [Documentation]    Create a DI record with Contact, Account, Opportunity, Payment, Account Soft Credit 
+Create Data Import with Additional Objects via API and Verify Values
+    [Documentation]    Create a DI record with Contact, Account, Opportunity, Payment, Account Soft Credit
     ...                and GAU details and verify that everything is saved as expected
     [tags]             unstable
     Process Data Import Batch    Completed
@@ -87,7 +87,3 @@ Create Data Import with Additional Objects via API and Verify Values
     Verify Related Object Field Values    Contact Roles
     ...    ${first_name1} ${last_name1}=Donor
     ...    ${first_name1} ${last_name1}=Honoree
-   
-      
-    
-    

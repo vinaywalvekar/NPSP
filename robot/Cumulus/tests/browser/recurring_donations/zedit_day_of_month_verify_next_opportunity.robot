@@ -112,5 +112,3 @@ Edit Day Of Month For Enhanced Recurring donation record of type open
         ...            Validate Opportunity Details       ${opportunity}[1][Id]        Pledged                          ${next_payment_date}
         ...  ELSE   Run Keywords
         ...            Validate Opportunity Details       ${opportunity}[0][Id]        Pledged                          ${next_payment_date}
-
-

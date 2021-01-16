@@ -6,8 +6,8 @@ Suite Setup     Run keywords
 ...             Open Test Browser
 ...             Setup Test Data
 Suite Teardown  Run keywords
-...             Disable Default And Payment Allocations
-...             Capture Screenshot and Delete Records and Close Browser
+...             API Modify Allocations Setting  ${NS}Default_Allocations_Enabled__c=false    ${NS}Payment_Allocations_Enabled__c=false   ${NS}Default__c=None
+...  AND        Capture Screenshot and Delete Records and Close Browser
 
 *** Variables ***
 &{contact1_fields}         Email=test@example.com
@@ -19,56 +19,61 @@ Suite Teardown  Run keywords
 Allocations Behavior when $0 with Default Allocations Enabled
     [Documentation]             Enable payment allocation and make sure default allocations are enabled
     ...                         Create a $0 opportunity.Default GAU allocation should still be created for opportunity.
-    [tags]                      unstable     W-035595    feature:Payment Allocations
-    Enable Default Allocations
+    [tags]                      unstable     W-035595    feature:payment_allocations
+    API Modify Allocations Setting
+    ...                         ${NS}Default_Allocations_Enabled__c=true
+    ...                         ${NS}Default__c=${DEF_GAU}[Id]
+    ...                         ${NS}Payment_Allocations_Enabled__c=true
     Setupdata                   contact1            ${contact1_fields}     ${opportunity1_fields}
     Go To Page                  Detail
     ...                         Opportunity
     ...                         object_id=${data}[contact1_opportunity][Id]
     Select Tab                  Related
     Verify Allocations          GAU Allocations
-    ...                         ${def_gau}[Name]=$0.00
+    ...                         ${DEF_GAU}[Name]=$0.00
 
 Allocations Behavior when $0 with Default Allocations Disabled
     [Documentation]             Enable payment allocation and make sure default allocations are DISABLED. Create a $0 opportunity
     ...                         Add a GAU with 100% and verify that GAU allocation is still there on Opportunity after save
     [tags]                      unstable    W-035647    feature:Payment Allocations
-    Disable Default Allocations
+    API Modify Allocations Setting
+    ...                         ${NS}Default_Allocations_Enabled__c=false
+    ...                         ${NS}Default__c=${DEF_GAU}[Id]
+    ...                         ${NS}Payment_Allocations_Enabled__c=true
     Setupdata                   contact2                    ${contact2_fields}     ${opportunity2_fields}
-    &{allocation} =             API Create GAU Allocation   ${gau}[Id]             ${data}[contact2_opportunity][Id]
-    ...                         ${ns}Percent__c=0.0
+    &{allocation} =             API Create GAU Allocation   ${GAU}[Id]             ${data}[contact2_opportunity][Id]
+    ...                         ${NS}Percent__c=0.0
     Go To Page                  Detail
     ...                         Opportunity
     ...                         object_id=${data}[contact2_opportunity][Id]
     Select Tab                  Related
     Verify Allocations          GAU Allocations
-    ...                         ${gau}[Name]=0.000000%
+    ...                         ${GAU}[Name]=0.000000%
 
 ***Keywords***
 Enable Default Allocations
     API Modify Allocations Setting
-    ...               ${ns}Default_Allocations_Enabled__c=true
-    ...               ${ns}Default__c=${def_gau}[Id]
-    ...               ${ns}Payment_Allocations_Enabled__c=true
+    ...               ${NS}Default_Allocations_Enabled__c=true
+    ...               ${NS}Default__c=${DEF_GAU}[Id]
+    ...               ${NS}Payment_Allocations_Enabled__c=true
 
 Disable Default Allocations
     API Modify Allocations Setting
-    ...               ${ns}Default_Allocations_Enabled__c=false
-    ...               ${ns}Default__c=${def_gau}[Id]
-    ...               ${ns}Payment_Allocations_Enabled__c=true
+    ...               ${NS}Default_Allocations_Enabled__c=false
+    ...               ${NS}Default__c=${DEF_GAU}[Id]
+    ...               ${NS}Payment_Allocations_Enabled__c=true
 
 Disable Default And Payment Allocations
     API Modify Allocations Setting
-    ...               ${ns}Default_Allocations_Enabled__c=false
-    ...               ${ns}Payment_Allocations_Enabled__c=false
-    ...               ${ns}Default__c=None
+    ...               ${NS}Default_Allocations_Enabled__c=false
+    ...               ${NS}Payment_Allocations_Enabled__c=false
+    ...               ${NS}Default__c=None
 
 Setup Test Data
-    &{def_gau} =  API Create GAU    Name=default gau
-    Set suite variable              &{def_gau}
-    &{gau} =      API Create GAU
-    Set suite variable              &{gau}
-    ${ns} =       Get Npsp Namespace Prefix
-    Set suite variable              ${ns}
-    
-
+    [Documentation]     Creates the GAUs needed for Test
+    &{DEF_GAU} =  API Create GAU    Name=default gau
+    Set suite variable              &{DEF_GAU}
+    &{GAU} =      API Create GAU
+    Set suite variable              &{GAU}
+    ${NS} =       Get Npsp Namespace Prefix
+    Set suite variable              ${NS}

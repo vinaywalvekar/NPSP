@@ -95,5 +95,3 @@ Edit An Enhanced Recurring donation record of type open
     ...                                           object_id=${data}[contact_rd][Id]
     # Validate current and next year payment values based on the paused dates
     Validate Current And Next Year values         10                    ${TYPE}
-
-

@@ -86,5 +86,3 @@ Create Open Recurring Donation With Monthly Installment
     Store Session Record                    Opportunity                                                    ${opportunity1}[0][Id]
     Go To Page                              Details                        Opportunity                     object_id=${opportunity1}[0][Id]
     Navigate To And Validate Field Value    Stage                          contains                        Pledged
-
-

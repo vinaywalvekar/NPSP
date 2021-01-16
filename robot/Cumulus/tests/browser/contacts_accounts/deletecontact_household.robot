@@ -12,7 +12,7 @@ Suite Teardown  Delete Records and Close Browser
 ***Keywords***
 Setup Test Data
     &{contact1} =                        API Create Contact    Email=automation@example.com
-    Store Session record                 Account               ${contact1}[AccountId] 
+    Store Session record                 Account               ${contact1}[AccountId]
     Set suite variable                   &{contact1}
     &{contact2} =                        API Create Contact    AccountId=${contact1}[AccountId]
     Set suite variable                   &{contact2}
@@ -33,5 +33,3 @@ Delete Contact from Household
     Select Row                           ${Contact1}[FirstName] ${Contact1}[LastName]
     Click Link                           title=Delete
     Wait Until Page Contains             Warning
-
-

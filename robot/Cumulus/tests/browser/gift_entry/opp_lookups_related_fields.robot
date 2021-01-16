@@ -107,5 +107,3 @@ Verify Opportunity Related Field Values Autopopulate Correctly
     ...                                     Opportunity: Record Type=Donation
     ...                                     Opportunity: Stage=Closed Won
     ...                                     Opportunity: Description=${DESCRIPTION}[Default Value]
-
-
