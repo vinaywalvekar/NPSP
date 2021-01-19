@@ -124,32 +124,36 @@ API Create Organization Account
     [return]         &{account}
 
 API Create Primary Affiliation
-    [Documentation]  Creates a primary affiliation for a contact with specified account
-    ...              Required parameters are:
+    [Documentation]   Creates a primary affiliation for a contact with specified account
+    ...               Required parameters are:
     ...
-    ...              |   account_id    |   id of account   |
-    ...              |   contact_id    |   id of contact   |
-    ...              |   field_api_name=value |   any field u want to populate with value on  npe5__Affiliation__c object   |
-    [Arguments]      ${account_id}      ${contact_id}    &{fields}
-    ${opp_id} =  Salesforce Insert    npe5__Affiliation__c
+    ...               |   account_id    |   id of account   |
+    ...               |   contact_id    |   id of contact   |
+    ...               |   field_api_name=value |   any field u want to populate with value on  npe5__Affiliation__c object   |
+    [Arguments]       ${account_id}      ${contact_id}    &{fields}
+    ${aff_id} =       Salesforce Insert    npe5__Affiliation__c
     ...               npe5__Organization__c=${account_id}
     ...               npe5__Contact__c=${contact_id}
     ...               npe5__Primary__c=true
     ...               &{fields}
+    &{affiliation} =  Salesforce Get  npe5__Affiliation__c  ${aff_id}
+    [return]          &{affiliation}
 
 API Create Secondary Affiliation
-    [Documentation]  Creates a secondary affiliation for a contact with specified account
-    ...              Required parameters are:
+    [Documentation]   Creates a secondary affiliation for a contact with specified account
+    ...               Required parameters are:
     ...
-    ...              |   account_id    |   id of account   |
-    ...              |   contact_id    |   id of contact   |
-    ...              |   field_api_name=value |   any field u want to populate with value on  npe5__Affiliation__c object
-    [Arguments]      ${account_id}      ${contact_id}    &{fields}
-    ${opp_id} =  Salesforce Insert    npe5__Affiliation__c
+    ...               |   account_id    |   id of account   |
+    ...               |   contact_id    |   id of contact   |
+    ...               |   field_api_name=value |   any field u want to populate with value on  npe5__Affiliation__c object
+    [Arguments]       ${account_id}      ${contact_id}    &{fields}
+    ${aff_id} =       Salesforce Insert    npe5__Affiliation__c
     ...               npe5__Organization__c=${account_id}
     ...               npe5__Contact__c=${contact_id}
     ...               npe5__Primary__c=false
     ...               &{fields}
+    &{affiliation} =  Salesforce Get  npe5__Affiliation__c  ${aff_id}
+    [return]          &{affiliation}
 
 API Create Relationship
     [Documentation]  Creates a specified relationship between two contacts and sets default status as current if no value passed.
