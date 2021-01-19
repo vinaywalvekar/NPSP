@@ -50,25 +50,6 @@ Allocations Behavior when $0 with Default Allocations Disabled
     Verify Allocations          GAU Allocations
     ...                         ${GAU}[Name]=0.000000%
 
-***Keywords***
-Enable Default Allocations
-    API Modify Allocations Setting
-    ...               ${NS}Default_Allocations_Enabled__c=true
-    ...               ${NS}Default__c=${DEF_GAU}[Id]
-    ...               ${NS}Payment_Allocations_Enabled__c=true
-
-Disable Default Allocations
-    API Modify Allocations Setting
-    ...               ${NS}Default_Allocations_Enabled__c=false
-    ...               ${NS}Default__c=${DEF_GAU}[Id]
-    ...               ${NS}Payment_Allocations_Enabled__c=true
-
-Disable Default And Payment Allocations
-    API Modify Allocations Setting
-    ...               ${NS}Default_Allocations_Enabled__c=false
-    ...               ${NS}Payment_Allocations_Enabled__c=false
-    ...               ${NS}Default__c=None
-
 Setup Test Data
     [Documentation]     Creates the GAUs needed for Test
     &{DEF_GAU} =  API Create GAU    Name=default gau
