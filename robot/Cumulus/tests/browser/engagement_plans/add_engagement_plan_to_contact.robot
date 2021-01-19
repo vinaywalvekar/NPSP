@@ -13,8 +13,8 @@ Suite Setup     Run keywords
 Suite Teardown  Capture Screenshot and Delete Records and Close Browser
 
 ***Keywords***
-# Setup a contact with parameters specified
 Setup Test Data
+    [Documentation]     Setup a contact with parameters specified
     Setupdata   contact   contact_data=${contact_fields}
 
 *** Variables ***
@@ -63,4 +63,4 @@ Create a Contact and Add Engagement Plan
     ...                                              Contact
     ...                                              object_id=${data}[contact][Id]
     Click More Activity Button
-    Check Activity Tasks                            Task_1    Sub_task_1.1    Task_2
+    Check Activity Tasks                             Task_1    Sub_task_1.1    Task_2
