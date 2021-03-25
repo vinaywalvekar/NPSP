@@ -1171,12 +1171,12 @@ flows:
                 task: ensure_record_type
 
     test_performance_scratch:
-        description: 'Creates a test org and runs BDI performance tests'
+        description: 'Creates a test org and runs Insert performance tests'
         steps:
             1:
                 flow: qa_org
             3:
-                task: test_performance
+                task: test_insert_performance
                 options:
                     include: medium
                     vars: persistent_org:False
