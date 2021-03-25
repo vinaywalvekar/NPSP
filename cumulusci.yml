@@ -238,6 +238,8 @@ tasks:
         group: Performance Tests
         options:
             suites: robot/Cumulus/perftests/Insert_Tests.robot
+            options:
+                outputdir: robot/Cumulus/results
 
     test_rd_batch_performance:
         description: Runs Robot Framework performance tests for Enhanced Recurring Donations Batch Job
