@@ -1180,7 +1180,6 @@ flows:
             3:
                 task: test_insert_performance
                 options:
-                    include: medium
                     vars: persistent_org:False
 
     test_performance_LDV:
