@@ -27,14 +27,20 @@
  *     ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *     POSSIBILITY OF SUCH DAMAGE.
  */
-/**
-* @description Used to mock valid elevate tokenize gift values for unit tests
- */
-public with sharing class ElevateTokenizedGiftValidRequest extends ElevateTokenizedGift{
+public with sharing class ElevateCaptureGroupResponse {
+    public String id;
+    public List<Errors> errors;
 
-    public ElevateTokenizedGiftValidRequest() {
-        super.amount = 100.000;
-        super.firstName = 'John';
-        super.paymentMethodToken = 'valid-token';
+    public class Errors {
+        public String message;
+        public String failure_reason;
+    }
+
+    public String id() {
+        return id;
+    }
+
+    public List<Errors> errors() {
+        return errors;
     }
 }

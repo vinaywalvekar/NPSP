@@ -27,31 +27,28 @@
  *     ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *     POSSIBILITY OF SUCH DAMAGE.
  */
-/**
-* @description Used to mock invalid elevate tokenize gift values for unit tests
- */
-public with sharing class ElevateTokenizedGiftInvalidRequest extends ElevateTokenizedGift {
+public with sharing class ElevateCaptureGroupServiceValidRequest extends ElevateCaptureGroupService {
 
-    private static final String DUMMY_GROUP_ID = 'gp-12345';
+    public override ElevateAuthorizedGift addToCaptureGroup(ElevateTokenizedGift tokenizedGift, String groupId) {
+        ElevateAuthorizedGiftResponse giftResponse = new ElevateAuthorizedGiftResponse();
 
-    public ElevateTokenizedGiftInvalidRequest() {
-        super.amount = 100.000;
-        super.firstName = 'John';
-        super.paymentMethodToken = 'valid-token';
+        return new ElevateAuthorizedGift(tokenizedGift, giftResponse);
     }
 
-    public ElevateTokenizedGiftInvalidRequest withInvalidAmount() {
-        super.amount = -100.00;
-        return this;
+    public override ElevateCaptureGroup createCaptureGroup() {
+        ElevateCaptureGroupResponse captureGroupResponse = new ElevateCaptureGroupResponse();
+
+        ElevateCaptureGroup captureGroup = new ElevateCaptureGroup();
+        captureGroup.captureGroupResponse = createCaptureGroupSuccessMessage();
+
+        return captureGroup;
     }
 
-    public ElevateTokenizedGiftInvalidRequest withInvalidFirstName() {
-        super.firstName = null;
-        return this;
+    public ElevateCaptureGroupResponse createCaptureGroupSuccessMessage() {
+        return (ElevateCaptureGroupResponse)JSON.deserialize('{\n' +
+                '  "id": "test-id",\n' +
+                '  "status": "Open"\n' +
+                '}', ElevateCaptureGroupResponse.class);
     }
 
-    public ElevateTokenizedGiftInvalidRequest withInvalidToken() {
-        super.paymentMethodToken = null;
-        return this;
-    }
 }

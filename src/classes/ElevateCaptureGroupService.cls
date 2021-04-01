@@ -29,14 +29,33 @@
  */
 public virtual with sharing class ElevateCaptureGroupService {
 
-    public UTIL_Http.Response sendAddRequest(ElevateTokenizedGift tokenizedGift, String groupId) {
-        UTIL_Http.Response response = new UTIL_Http.RequestService().sendRequest(addRequest(tokenizedGift, groupId));
-        return response;
+    public virtual ElevateAuthorizedGift addToCaptureGroup(ElevateTokenizedGift tokenizedGift, String groupId) {
+        return new ElevateCaptureGroup(groupId).add(tokenizedGift);
     }
 
-    public UTIL_Http.Response sendCreateRequest() {
-        UTIL_Http.Response response = new UTIL_Http.RequestService().sendRequest(createRequest());
-        return response;
+    public virtual ElevateCaptureGroup createCaptureGroup() {
+        return new ElevateCaptureGroup().create();
+    }
+
+
+    public ElevateAuthorizedGift sendAddRequest(ElevateTokenizedGift tokenizedGift, String groupId) {
+        UTIL_Http.Response response = new UTIL_Http.RequestService().sendRequest(
+                addRequest(tokenizedGift, groupId)
+        );
+        ElevateAuthorizedGiftResponse authorizedGiftResponse = (ElevateAuthorizedGiftResponse)JSON.deserialize
+                (response.body, ElevateAuthorizedGiftResponse.class);
+        return new ElevateAuthorizedGift(tokenizedGift, authorizedGiftResponse);
+    }
+
+    public ElevateCaptureGroup sendCreateRequest() {
+        UTIL_Http.Response response = new UTIL_Http.RequestService().sendRequest(
+                createRequest()
+        );
+        System.debug(response.body);
+        ElevateCaptureGroupResponse captureGroupResponse = (ElevateCaptureGroupResponse)JSON.deserialize(
+                response.body, ElevateCaptureGroupResponse.class);
+        System.debug('capture group response -- ' + captureGroupResponse);
+        return new ElevateCaptureGroup(captureGroupResponse);
     }
 
     public HttpRequest addRequest(ElevateTokenizedGift tokenizedGift, String groupId) {

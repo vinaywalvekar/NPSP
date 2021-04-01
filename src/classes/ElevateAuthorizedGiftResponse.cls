@@ -27,37 +27,40 @@
  *     ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *     POSSIBILITY OF SUCH DAMAGE.
  */
-/**
-* @description Used to mock invalid elevate capture group requests for unit tests
- */
-public class ElevateCaptureGroupInvalidRequest extends ElevateCaptureGroupService {
+public with sharing class ElevateAuthorizedGiftResponse {
+    public Datetime authExpiresAt;
+    public ElevateTransactionStatus status;
+    public String id;
+    public String gatewayTransactionId;
+    public String originalTransactionId;
+    public List<Errors> errors;
 
-    public static final String INVALID_PARAMETER = 'invalid-parameter';
-    public static final String INVALID_GROUP_ID = 'invalid-group-id';
-    private static final String DUMMY_GROUP_ID = 'gp-12345';
-
-    private String groupId;
-    private String requestBody;
-
-    @TestVisible
-    private PS_Request.Builder requestBuilder {
-        get {
-            if (requestBuilder == null) {
-                requestBuilder = new PS_Request.Builder();
-            }
-            return requestBuilder;
-        }
-        set;
+    public class Errors {
+        public String message;
+        public String failure_reason;
     }
 
-    @TestVisible
-    private ElevateTokenizedGift tokenizedGift {
-        get {
-            if (tokenizedGift == null) {
-                tokenizedGift = new ElevateTokenizedGift();
-            }
-            return tokenizedGift;
-        }
-        set;
+    public DateTime authExpiresAt() {
+        return authExpiresAt;
+    }
+
+    public ElevateTransactionStatus status() {
+        return status;
+    }
+
+    public String id() {
+        return id;
+    }
+
+    public String gatewayTransactionId() {
+        return gatewayTransactionId;
+    }
+
+    public String originalTransactionId() {
+        return originalTransactionId;
+    }
+
+    public List<Errors> errors() {
+        return errors;
     }
 }

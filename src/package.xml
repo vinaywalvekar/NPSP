@@ -303,13 +303,13 @@
         <members>ERR_RecordError</members>
         <members>ERR_RecordError_TEST</members>
         <members>ElevateAuthorizedGift</members>
+        <members>ElevateAuthorizedGiftResponse</members>
         <members>ElevateCaptureGroup</members>
-        <members>ElevateCaptureGroupInvalidRequest</members>
-        <members>ElevateCaptureGroupMockHttpResponse</members>
+        <members>ElevateCaptureGroupResponse</members>
         <members>ElevateCaptureGroupService</members>
+        <members>ElevateCaptureGroupServiceInvalidRequest</members>
+        <members>ElevateCaptureGroupServiceValidRequest</members>
         <members>ElevateTokenizedGift</members>
-        <members>ElevateTokenizedGiftInvalidRequest</members>
-        <members>ElevateTokenizedGiftValidRequest</members>
         <members>ElevateTransactionStatus</members>
         <members>GAU_TDTM</members>
         <members>GAU_TDTM_TEST</members>
@@ -1224,6 +1224,7 @@
         <members>DataImport__c.Payment_Check_Reference_Number__c</members>
         <members>DataImport__c.Payment_Declined_Reason__c</members>
         <members>DataImport__c.Payment_Donor_Cover_Amount__c</members>
+        <members>DataImport__c.Payment_Elevate_Batch_ID__c</members>
         <members>DataImport__c.Payment_Elevate_Created_Date__c</members>
         <members>DataImport__c.Payment_Elevate_Created_UTC_Timestamp__c</members>
         <members>DataImport__c.Payment_Elevate_ID__c</members>
@@ -2389,6 +2390,8 @@
         <members>geAssistiveSectionUp</members>
         <members>geAssistiveShowMenu</members>
         <members>geAssistiveSpinner</members>
+        <members>geAuthorizedCreditCardSuccess</members>
+        <members>geAuthorizingCreditCard</members>
         <members>geBatchGiftsCount</members>
         <members>geBatchGiftsExpectedCountOrTotalMessage</members>
         <members>geBatchGiftsExpectedTotalsMessage</members>
@@ -4278,7 +4281,6 @@
         <members>gsVideoHeader</members>
         <members>gseuHeader</members>
         <members>gseuTrailhead</members>
-        <members>helpers</members>
         <members>libsMoment</members>
         <members>modal</members>
         <members>progressRing</members>
