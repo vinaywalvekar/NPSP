@@ -150,6 +150,15 @@ tasks:
             path: unpackaged/config/regression_bdi_custom_metadata
             namespace_inject: $project_config.project__package__namespace
 
+    deploy_regression_tests:
+        description: Deploys Unit tests and metadata for Beta Regression
+        class_path: cumulusci.tasks.salesforce.Deploy
+        group: NPSP
+        options:
+            path: unpackaged/config/regression_beta
+            namespace_inject: $project_config.project__package__namespace
+            unmanaged: True
+
     deploy_rd2_config:
         description: Deploys updates to fully enable Enhanced Recurring Donations
         class_path: cumulusci.tasks.salesforce.Deploy
@@ -1180,6 +1189,32 @@ flows:
                 options:
                     test_name_match: LDV_%
 
+    run_beta_tests_managed:
+        steps:
+            1:
+                task: deploy_regression_tests
+                options:
+                    unmanaged: False
+            2:
+                task: run_tests
+                options:
+                    test_name_match: QE_Beta%
+                    managed: False
+                    required_org_code_coverage_percent: 1
+
+    run_beta_tests:
+        steps:
+            1:
+                task: deploy_regression_tests
+                options:
+                    unmanaged: True
+            2:
+                task: run_tests
+                options:
+                    test_name_match: BETA_Test%
+                    managed: False
+                    required_org_code_coverage_percent: 1
+
     dependencies:
         steps:
             3:
@@ -1256,6 +1291,11 @@ flows:
         steps:
             3:
                 task: ensure_record_type
+
+    ci_beta:
+        steps:
+            3:
+                flow: run_beta_tests_managed
 
     trailhead_org:
         steps:
