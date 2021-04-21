@@ -1,44 +1,15 @@
 /**
-// Created by Luke Parrott on 04/19/2021.
-//   TODO: UPDATE
-// - Deploy this using the "deploy_rollup_testing" CCI flow. That will create the necessary target fields
-//   on the Account object for Account-Contact Soft Credit, Account Soft Credit, and Payment Rollup testing.
-//   It will also deploy this class into the org.
-//
-// - The most common issue with testing in this class is Membership Exclusion. Be sure to review the Legacy
-//   and CustomizableRollups Filter Groups to ensure that either Membership Opps are include or excluded to
-//   match the ROLLUPS_INCLUDES_MEMBERSHIP var setting below.
-// - Specifically, in a new Scratch Org the "Membership" record type is not often set properly in Custom
-//   Settings so when the Membership Filter Group is created there is no filter rule to limit Membership
-//   Rollups to the Membership RT only. This will lead to the validateRollups() failing for the
-//   Membership rollup in Customizable Rollups. The fix is to simply edit the Membership-Won Filter Group
-//   to create a rule for Opportunity.RecordType=Membership.
-//
-// - ALL TESTS ARE CONDUCTED USING EXECUTE ANONYMOUS; EXECUTING ONE METHOD AT A TIME IN THE FOLLOWING ORDER:
-// - The entire block below can be pasted into the ExecuteAnonymous window of DevConsole and then each task
-//   run individually by highlighting the command and clicking [Execute Highlighted].
-//
-//
-//   - STEP 1: Initial Setup - Delete any existing test data and recreate the data.
-//   - NOTE: WAIT for the @Future job to finish before moving onto Step 2
-//   CRLP_TEST_VALIDATE_ROLLUPS.deleteTestData();
-//   CRLP_TEST_VALIDATE_ROLLUPS.createTestDataASync();
-//
-//   - STEP 2: ExecuteLegacyRollups will complete synchronously.
-//   CRLP_TEST_VALIDATE_ROLLUPS.executeLegacyRollups();
-//   - ValidateRollups will either throw an exception with errors or succeed. Click [Debug] in the Log View for details
-//   CRLP_TEST_VALIDATE_ROLLUPS.validateRollups();
-//
-//   - STEP 3: ExecuteCustomizableRollups starts asynchronous batch jobs to complete the rollups.
-//   - NOTE: WAIT for all the CRLP batch jobs to finish before running the validateRollups() method.
-//   CRLP_TEST_VALIDATE_ROLLUPS.executeCustomizableRollups();
-//   CRLP_TEST_VALIDATE_ROLLUPS.validateRollups();
-//
-//   - STEP 4: Optional: Delete the test data when done
-//   CRLP_TEST_VALIDATE_ROLLUPS.deleteTestData();
+
+    A Test class to be run against a manged Beta after it is created.
+
 */
 @IsTest
 public class BETA_Test_Regressions {
+
+    private static Decimal rdAmount = 10;
+    private static String closedStage = 'Closed Won';
+    private static String pledgedStage = 'Pledged';
+    private static Date today = System.today();
 
     /****
     * @description Creates data required for unit tests
@@ -50,25 +21,89 @@ public class BETA_Test_Regressions {
             Lastname = 'Beta'
         );
         insert c;
-        
-        npe03__Recurring_Donation__c rd = new npe03__Recurring_Donation__c(
-            npe03__Amount__c = 1000,
-            npe03__Contact__c = c.Id,
-            npe03__Organization__c = c.AccountId
-        );
+
+        npe03__Recurring_Donation__c rd = createRD(rdAmount, c.Id, c.AccountId, '15');
         insert rd;
+
+        List<Opportunity> oppList = new List<Opportunity>();
+
+        // Note: The RD will create an Open Opportunity for the 15th of next month
+        oppList.add(createOpp('Open Today', rdAmount, today, rd.Id, 
+            c.AccountId, c.Id, pledgedStage));
+        oppList.add(createOpp('Open Past', rdAmount, today.addDays(-10), rd.Id, 
+            c.AccountId, c.Id, pledgedStage));
+        oppList.add(createOpp('Closed Past', rdAmount, today.addDays(-20), rd.Id, 
+            c.AccountId, c.Id, closedStage));
+        insert oppList;
     }
 
     /****
-    * @description Verifies enablement state values are not set by default
+    * @description TODO
     */
     @isTest
-    private static void shouldReturnDefaultEnablementStateWhenNotSetup() {
+    private static void rdAndOppShouldBeCreated() {
 
-        // %%%NAMESPACE%%%
+        List<npe03__Recurring_Donation__c> rdList = getRds();
+        System.assert(rdList.size() > 0, true);
 
-        Boolean testTrue = true;
-        System.assert(testTrue, true);
+        npe03__Recurring_Donation__c rd = rdList[0];
+        System.assertEquals(rd.npe03__Amount__c, rdAmount, 'RD Amount is wrong');
+
+        // Ordered from earliest to latest CloseDate
+        List<Opportunity> opps = getOpps(rd.Id);
+        System.assertEquals(opps.size(), 4);
+
+        Opportunity closedOpp = opps[0];
+        System.assertEquals(closedOpp.Amount, rdAmount, 'Opp Amount is wrong');
+        System.assertEquals(closedOpp.StageName, closedStage, 'Opp should be closed');
+
+        Opportunity todayOpp = opps[2];
+        System.assertEquals(todayOpp.CloseDate, today, 'This opp should be for today');
+    }
+
+    /****
+    * Helper Methods
+    */
+    private static npe03__Recurring_Donation__c createRD(Decimal amount, Id contactId, 
+        Id accountId, String dayOfMonth){
+
+            return new npe03__Recurring_Donation__c(
+                npe03__Amount__c = amount,
+                npe03__Contact__c = contactId,
+                npe03__Organization__c = accountId,
+                Day_of_Month__c = dayOfMonth
+            );
+    }
+
+    private static Opportunity createOpp(String name, Decimal amount, Date closeDate,
+        Id rdId, Id accountId, Id contactId, String stage){
+
+            return new Opportunity(
+                Name = name,
+                Amount = amount,
+                AccountId = accountId,
+                Primary_Contact__c = checkNullId(contactId),
+                npe03__Recurring_Donation__c = rdId,
+                StageName = stage,
+                CloseDate = (closeDate != null) ? closeDate : today
+            );
+    }
+
+    private static Id checkNullId(Id recordId){
+        return (recordId != null) ? recordId : null;
+    }
+
+    private static List<npe03__Recurring_Donation__c> getRds(){
+        // TODO: Add %%%NAMESPACE%%%
+        return [SELECT Id, npe03__Amount__c, npe03__Contact__c, Day_of_Month__c
+            FROM npe03__Recurring_Donation__c];
+    }
+
+    private static List<Opportunity> getOpps(Id rdId){
+        return [SELECT Id, Amount, CloseDate, StageName
+            FROM Opportunity
+            WHERE npe03__Recurring_Donation__c =: rdId
+            ORDER BY CloseDate asc];
     }
 
 }
