@@ -1,4 +1,4 @@
-import { LightningElement, api, wire } from 'lwc';
+import { LightningElement, api, track, wire } from 'lwc';
 import getHardCreditDonorsFor 
     from '@salesforce/apex/DonorService.getHardCreditDonorsFor';
 import getSoftCreditDonorsFor 
@@ -8,9 +8,8 @@ export default class OppDonationAttribution extends LightningElement {
 
     @api recordId;
     
-    donors = [];
-    softCredits = []; 
-    donorNames = '';
+    @track donors = [];
+    @track softCredits = []; 
     error;
 
     @wire(getHardCreditDonorsFor, { opportunityId: '$recordId' }) 
@@ -24,14 +23,13 @@ export default class OppDonationAttribution extends LightningElement {
                 let iconName = 'standard:contact';
                 if (donor.donorType === 'HOUSEHOLD') {
                     iconName = 'standard:household';
+                } else if (donor.donorType === 'ORGANIZATION') {
+                    iconName = 'standard:account';
                 }
 
                 donor.iconName = iconName;
             });
 
-            if(this.donors.length > 0) {
-                this.donorNames = this.donors[0].fullName;
-            }
         } else if (error) {
             this.error = 'Unknown error';
             if (Array.isArray(error.body)) {
@@ -45,7 +43,21 @@ export default class OppDonationAttribution extends LightningElement {
     @wire(getSoftCreditDonorsFor, { opportunityId: '$recordId' }) 
     wiredSoftCredit({data, error}) {
         if (data) {
-            this.softCredits = data;
+            for (let i = 0; i < data.length; i++) {
+                this.softCredits.push(Object.assign({}, data[i], {selectable: false}));
+            }
+            
+            this.softCredits.map(softCredit => {
+                let iconName = 'standard:contact';
+                if (softCredit.donorType === 'HOUSEHOLD') {
+                    iconName = 'standard:household';
+                } else if (softCredit.donorType === 'ORGANIZATION') {
+                    iconName = 'standard:account';
+                }
+
+                softCredit.iconName = iconName;
+            });            
+            //this.softCredits = data;
         } else if (error) {
             this.error = 'Unknown error';
             if (Array.isArray(error.body)) {
