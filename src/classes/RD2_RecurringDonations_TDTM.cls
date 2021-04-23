@@ -107,8 +107,7 @@ public class RD2_RecurringDonations_TDTM extends TDTM_Runnable {
         }
 
         autogenerateNames(rds, oldRds, triggerAction);
-        transformDataBeforeValidation(rds, oldRds, triggerAction);
-        validate(rds, oldRds, triggerAction);
+        adjustDataAndValidate(rds, oldRds, triggerAction);
         transformDataInBeforeContext(rds, oldRds, triggerAction);
         handleSchedulesInAfterContext(rds, oldRds, triggerAction);
 
@@ -195,7 +194,7 @@ public class RD2_RecurringDonations_TDTM extends TDTM_Runnable {
     /***
     * @description Prevents Recurring Donation update when
     * its schedule related fields are changed and the RD has an active Pause
-    * @param rd The Recurring Donation to validate
+    * @param rdRecord The Recurring Donation to validate
     * @param oldRd The old Recurring Donation
     * @param schedules All active Schedules on the Recurring Donation
     * @return void
@@ -251,8 +250,7 @@ public class RD2_RecurringDonations_TDTM extends TDTM_Runnable {
     * @param oldRds Trigger.old records
     * @param triggerAction BeforeInsert, AfterInsert, etc.
     */
-    @TestVisible
-    private void transformDataBeforeValidation(List<npe03__Recurring_Donation__c> rds, List<npe03__Recurring_Donation__c> oldRds, TDTM_Runnable.Action triggerAction) {
+    public void adjustDataAndValidate(List<SObject> rds, List<SObject> oldRds, TDTM_Runnable.Action triggerAction) {
         //data transformation happens in the Before context only
         if (triggerAction != TDTM_Runnable.Action.BeforeInsert
             && triggerAction != TDTM_Runnable.Action.BeforeUpdate
@@ -260,112 +258,14 @@ public class RD2_RecurringDonations_TDTM extends TDTM_Runnable {
             return;
         }
 
-        autoPopulateAccounts(rds);
+        new RD2_DataRegulationService(currentDate)
+            .adjust(rds, oldRds);
 
-        for (npe03__Recurring_Donation__c rd : rds) {
-            if (rd.npe03__Installment_Period__c != RD2_Constants.INSTALLMENT_PERIOD_MONTHLY && rd.Day_of_Month__c != null) {
-                rd.Day_of_Month__c = null;
-            }
-            //map the Day of Month value of "31" to the Last_Day value
-            if (rd.Day_of_Month__c == '31') {
-                rd.Day_of_Month__c = RD2_Constants.DAY_OF_MONTH_LAST_DAY;
-            }
+        List<RD2_ValidationService.ErrorRecord> errorRds = new RD2_ValidationService(rds, oldRds)
+            .validate();
 
-            //set the default installment frequency when value is not provided on the RD insert
-            if (rd.InstallmentFrequency__c == null && triggerAction == TDTM_Runnable.Action.BeforeInsert) {
-                rd.InstallmentFrequency__c = RD2_Constants.DEFAULT_INSTALLMENT_FREQUENCY;
-            }
-        }
-
-        adjustClosedRdEndDateAndStatus(rds, oldRds, triggerAction);
-    }
-
-    /***
-    * @description Auto-populates empty Account field on a Recurring Donation having Contact specified
-    * @param rds Recurring Donation records
-    * @return none
-    */
-    private void autoPopulateAccounts(List<npe03__Recurring_Donation__c> rds) {
-        if (rds == null || rds.isEmpty()) {
-            return;
-        }
-
-        Set<Id> contactIds = new Set<Id>();
-        for (npe03__Recurring_Donation__c rd : rds) {
-            if (rd.npe03__Organization__c == null && rd.npe03__Contact__c != null) {
-                contactIds.add(rd.npe03__Contact__c);
-            }
-        }
-        if (contactIds.isEmpty()) {
-            return;
-        }
-
-        Map<Id, Contact> contactById = new Map<Id, Contact>([
-            SELECT Name, AccountId
-            FROM Contact
-            WHERE Id IN :contactIds
-        ]);
-
-        for (npe03__Recurring_Donation__c rd : rds) {
-            if (rd.npe03__Organization__c == null
-                && rd.npe03__Contact__c != null
-                && contactById.containsKey(rd.npe03__Contact__c)
-            ) {
-                rd.npe03__Organization__c = contactById.get(rd.npe03__Contact__c).AccountId;
-            }
-        }
-    }
-
-    /***
-    * @description Evaluate End Date on Recurring Donation
-    * If the RD Status is inserted/updated to Closed and the End Date is null, auto-populate the end date to yesterday.
-    * If the Open Ended RD Status is updated to Closed but the End Date is in the future, revert the status to before update.
-    * If the RD is reopened, clear out the End Date
-    * @param rds Trigger.new records
-    * @param oldRds Trigger.old records
-    */
-    private void adjustClosedRdEndDateAndStatus(List<npe03__Recurring_Donation__c> rds, List<npe03__Recurring_Donation__c> oldRds, TDTM_Runnable.Action triggerAction) {
-        for (Integer i = 0; i < rds.size(); i++) {
-            RD2_RecurringDonation newRd = new RD2_RecurringDonation(rds[i]);
-
-            if (newRd.isClosed() && rds[i].EndDate__c == null) {
-                rds[i].EndDate__c = currentDate.addDays(-1);
-            }
-
-            if (triggerAction == TDTM_Runnable.Action.BeforeUpdate) {
-                if (!newRd.isClosed() && (new RD2_RecurringDonation(oldRds[i]).isClosed())) {
-                    rds[i].EndDate__c = null;
-                }
-
-                if (
-                    newRd.isOpenEnded()
-                    && !newRd.isElevateRecord()
-                    && newRd.isClosed()
-                    && rds[i].EndDate__c != null
-                    && rds[i].EndDate__c > currentDate
-                ) {
-                    rds[i].Status__c = oldRds[i].Status__c;
-                }
-            }
-        }
-    }
-
-    /***
-    * @description Validates Recurring Donations data
-    * @param rds Trigger.new records
-    * @param oldRds Trigger.old records
-    * @param triggerAction BeforeInsert, AfterInsert, etc.
-    */
-    public void validate(List<SObject> rds, List<SObject> oldRds, TDTM_Runnable.Action triggerAction) {
-        RD2_ValidationService validationService = new RD2_ValidationService(rds);
-
-        if (triggerAction == TDTM_Runnable.Action.BeforeInsert) {
-            validationService.validate();
-
-        } else if (triggerAction == TDTM_Runnable.Action.BeforeUpdate) {
-            validationService
-                .withOldRecurringDonations(oldRds)
-                .validateOnChange();
+        for (RD2_ValidationService.ErrorRecord errorRd : errorRds) {
+            errorRd.getRecord().addError(errorRd.getFirstError());
         }
     }
 
@@ -552,12 +452,11 @@ public class RD2_RecurringDonations_TDTM extends TDTM_Runnable {
     */
     private void cancelCommitments(List<npe03__Recurring_Donation__c> rds, List<npe03__Recurring_Donation__c> oldRds, TDTM_Runnable.Action triggerAction ) {
         if (triggerAction != TDTM_Runnable.Action.BeforeUpdate
-            || TDTM_ProcessControl.isRecursive(TDTM_ProcessControl.flag.PS_doNotSendToElevate)
             || !RD2_ElevateIntegrationService.isIntegrationEnabled()) {
             return;
         }
 
-        List<npe03__Recurring_Donation__c> commitmentRDs = new List<npe03__Recurring_Donation__c>();
+        List<RD2_CancelCommitmentService.RecordWrapper> commitmentRDs = new List<RD2_CancelCommitmentService.RecordWrapper>();
 
         for (Integer i = 0; i < rds.size(); i++) {
             npe03__Recurring_Donation__c closedRd = rds[i];
@@ -571,19 +470,16 @@ public class RD2_RecurringDonations_TDTM extends TDTM_Runnable {
                 }
 
                 //send the RD details including the user provided Closed Reason to the commitment service
-                commitmentRDs.add(new npe03__Recurring_Donation__c(
-                    Id = closedRd.Id,
-                    ClosedReason__c = closedRd.ClosedReason__c,
-                    CommitmentId__c = closedRd.CommitmentId__c
+                commitmentRDs.add(new RD2_CancelCommitmentService.RecordWrapper(
+                    new npe03__Recurring_Donation__c(
+                        Id = closedRd.Id,
+                        ClosedReason__c = closedRd.ClosedReason__c,
+                        CommitmentId__c = closedRd.CommitmentId__c
+                    )
                 ));
 
                 // update the closed RD reason to Elevate pending status
                 closedRd.ClosedReason__c = System.Label.RD2_ElevatePendingStatus;
-
-                if (commitmentRDs.size() >= Limits.getLimitCallouts()) {
-                    System.enqueueJob(new RD2_QueueableService.CancelCommitmentService(commitmentRDs));
-                    commitmentRDs.clear();
-                }
             }
         }
 

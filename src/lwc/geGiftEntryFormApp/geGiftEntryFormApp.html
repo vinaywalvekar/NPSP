@@ -16,7 +16,9 @@
             onsectionsretrieved={handleSectionsRetrieved}
             onpermissionerror={handlePermissionErrors}
             ontogglemodal={handleToggleModal}
-            loading-text={loadingText}>
+            onnavigate={handleNavigateEvent}
+            loading-text={loadingText}
+            batch-currency-iso-code={batchCurrencyIsoCode}>
     </c-ge-form-renderer>
 
     <template if:false={isPermissionError}>
@@ -33,7 +35,8 @@
                     ondelete={handleDelete}
                     oncountchanged={handleCountChanged}
                     ontotalchanged={handleTotalChanged}
-                    onselectcolumns={handleSelectColumns}>
+                    onselectcolumns={handleSelectColumns}
+                    batch-currency-iso-code= {batchCurrencyIsoCode}>
             </c-ge-batch-gift-entry-table>
         </template>
     </template>

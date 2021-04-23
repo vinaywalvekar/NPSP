@@ -8,14 +8,20 @@ import elevateWidgetLabel from '@salesforce/label/c.commonPaymentServices';
 import spinnerAltText from '@salesforce/label/c.geAssistiveSpinner';
 import elevateDisableButtonLabel from '@salesforce/label/c.RD2_ElevateDisableButtonLabel';
 import elevateDisabledMessage from '@salesforce/label/c.RD2_ElevateDisabledMessage';
+import nextPaymentDonationDateMessage from '@salesforce/label/c.RD2_NextPaymentDonationDateInfo';
 import cardholderNameLabel from '@salesforce/label/c.commonCardholderName';
 import elevateEnableButtonLabel from '@salesforce/label/c.RD2_ElevateEnableButtonLabel';
+import updatePaymentButtonLabel from '@salesforce/label/c.RD2_UpdatePaymentInformation';
+import cancelButtonLabel from '@salesforce/label/c.commonCancel';
+import commonExpirationDate from '@salesforce/label/c.commonMMYY';
 
 /***
 * @description Event name fired when the Elevate credit card widget is displayed or hidden
 * on the RD2 entry form
 */
 const WIDGET_EVENT_NAME = 'rd2ElevateCreditCardForm';
+
+const TOKENIZE_CREDIT_CARD_EVENT_ACTION = 'createToken';
 
 /***
 * @description Payment services Elevate credit card widget on the Recurring Donation entry form
@@ -28,18 +34,69 @@ export default class rd2ElevateCreditCardForm extends LightningElement {
         elevateDisableButtonLabel,
         elevateDisabledMessage,
         elevateEnableButtonLabel,
-        cardholderNameLabel
+        cardholderNameLabel,
+        updatePaymentButtonLabel,
+        cancelButtonLabel,
+        nextPaymentDonationDateMessage,
+        commonExpirationDate
     };
 
     @track isLoading = true;
     @track isDisabled = false;
     @track alert = {};
 
+    _paymentMethod = undefined;
+    _nextDonationDate = undefined;
+    _isEditPayment = false;
+    
+    @api isEditMode;
+    @api cardLastFour;
+    @api cardLastFourLabel;
+    @api cardExpDate;
+
+    @api
+    get paymentMethod() {
+        return this._paymentMethod;
+    }
+
+    set paymentMethod(value) {
+        this._paymentMethod = value;
+    }
+
+    @api
+    get isEditPayment() {
+        return this._isEditPayment;
+    }
+
+    set isEditPayment(value) {
+        this._isEditPayment = value;
+    }
+
+    get nextPaymentDonationDateMessage() {
+        return (this.nextDonationDate == null)
+        ? ''
+        : this.labels.nextPaymentDonationDateMessage.replace('{{DATE}}', ' ');
+    }
+
+    @api 
+    get nextDonationDate() {
+        const localDate = new Date(this._nextDonationDate);
+        return new Date(localDate.getUTCFullYear(), localDate.getUTCMonth(), localDate.getUTCDate());
+    }
+
+    set nextDonationDate(value) {
+        this._nextDonationDate = value;
+    }
+
     /***
     * @description Get the organization domain information such as domain and the pod name
     * in order to determine the Visualforce origin URL so that origin source can be verified.
     */
     async connectedCallback() {
+        if(this.isEditMode){
+            this.isDisabled = true;
+        }
+
         const domainInfo = await getOrgDomainInfo()
             .catch(error => {
                 this.handleError(error);
@@ -70,9 +127,26 @@ export default class rd2ElevateCreditCardForm extends LightningElement {
     async handleMessage(message) {
         tokenHandler.handleMessage(message);
 
-        if (message.isLoaded) {
-            this.isLoading = false;
+        if (message.isReadyToMount && !this.isMounted) {
+            this.requestMount();
         }
+    }
+
+    /***
+    * @description Method sends a message to the Visualforce iframe wrapper for the Elevate sdk to mount
+    * the tokenization iframe.
+    */
+    requestMount() {
+        const iframe = this.template.querySelector(`[data-id='${this.labels.elevateWidgetLabel}']`);
+        tokenHandler.mount(iframe, this.paymentMethod, this.handleError, this.resolveMount);
+    }
+
+    /***
+    * @description Handles a successful response from the Elevate sdk mount request.
+    */
+    resolveMount = () => {
+        this.isLoading = false;
+        this.isMounted = true;
     }
 
     /***
@@ -82,8 +156,13 @@ export default class rd2ElevateCreditCardForm extends LightningElement {
         this.clearError();
 
         const iframe = this.template.querySelector(`[data-id='${this.labels.elevateWidgetLabel}']`);
-
-        return tokenHandler.requestToken(iframe, this.getCardholderName(), this.handleError);
+        const params = { nameOnCard : this.getCardholderName() };
+        return tokenHandler.requestToken({
+            iframe: iframe,
+            tokenizeParameters: params,
+            eventAction: TOKENIZE_CREDIT_CARD_EVENT_ACTION,
+            handleError: this.handleError,
+        });
     }
 
     /***
@@ -120,6 +199,7 @@ export default class rd2ElevateCreditCardForm extends LightningElement {
     */
     hideWidget() {
         this.isDisabled = true;
+        this.isMounted = false;
         this.clearError();
     }
 
@@ -198,4 +278,13 @@ export default class rd2ElevateCreditCardForm extends LightningElement {
             payload: this.requestToken()
         };
     }
+
+    get qaLocatorLastFourDigits() {
+        return `text Last Four Digits`;
+    }
+
+    get qaLocatorExpirationDate() {
+        return `text Expiration Date`;
+    }
+
 }

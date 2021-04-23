@@ -2,6 +2,7 @@
 
 Resource       cumulusci/robotframework/Salesforce.robot
 Library        DateTime
+Library        Process
 Library        robot/Cumulus/resources/NPSPSettingsPageObject.py
 Library        NPSP.py
 
@@ -414,6 +415,18 @@ Create Customfield In Object Manager
     Open Fields And Relationships                        ${fields}[Object]
     Create Custom Field                                  &{fields}
 
+Add Custom Picklist Values To Field
+    [Documentation]        Reads key value pair arguments.
+    ...                    Navigates to Object Manager page and load fields and relationships for the specific object
+    ...                    Runs keyword to add picklist values
+    ...                    Example key,value pairs
+    ...                                                    Object=Recurring Donation
+    ...                                                    Field_Name=Status
+    ...                                                    Values=@{picklistvalues}
+    [Arguments]            &{fields}
+    Load Page Object                                     Custom                           ObjectManager
+    Open Fields And Relationships                        ${fields}[Object]
+    Add picklist values                                  &{fields}
 
 Enable RD2QA
     [Documentation]        Enables Enhanced Recurring donations (RD2) settings and deploys the metadata
@@ -473,8 +486,19 @@ API Query Recurrring Donation Settings For RD2 Enablement
 Enable RD2
     [Documentation]           Checks if Rd2 settings are already enabled and then run the scripts to enable RD2
     ${is_rd2_enabled} =       API Query Recurrring Donation Settings For RD2 Enablement
-    Run Keyword if            "${is_rd2_enabled}"!="True"
-    ...                       Enable RD2QA
+    ${ns} =                   Get Npsp Namespace Prefix
+    Log                       ${ns}
+    ${return} =                Run Keyword if            "${is_rd2_enabled}"!="True" and "${ns}"!="npsp__"
+    ...                        Run Flow                  enable_rd2
+    Run Keyword if            "${is_rd2_enabled}"!="True" and "${ns}"=="npsp__"
+    ...                        Run flow                  enable_rd2_managed
+    Run Keyword if            "${return}"!="None"
+    ...                       Log           ${return.stdout}
+    Run Keyword if            "${return}"!="None"
+    ...                       Log           ${return.stderr}
+    Run Keyword if            "${return}"!="None"
+    ...                       Should Be Equal As Integers	    ${return.rc}	    0
+    Sleep                     1                                 Wait Added For Metadata Get Loaded
 
 Run Recurring Donations Batch
     [Documentation]              Triggers Recurring Donations Batch Job And Waits For the Batch Job To Complete Depending On the Type
@@ -540,3 +564,136 @@ API Create Lead
     ...                 &{fields}
     &{lead} =           Salesforce Get  Lead  ${lead_id}
     [return]            &{lead}
+
+Create Gift Entry Batch
+    [Documentation]     Creates a new gift entry batch using the template specified and with given name
+    [Arguments]         ${template}    ${batch_name}
+    Click Gift Entry Button                 New Batch
+    Wait Until Modal Is Open
+    Select Template                         ${template}
+    Load Page Object                        Form                            Gift Entry
+    Fill Gift Entry Form
+    ...                                     Batch Name=${batch_name}
+    ...                                     Batch Description=This is a test batch created via automation script
+    Click Gift Entry Button                 Next
+    Click Gift Entry Button                 Save
+
+Verify Error Message on AM Page And Object Group
+    [Documentation]         Verifies error is thrown on Advanced mapping and object group page for missing field mapping
+    [Arguments]             ${object_group}     ${field}
+    Go To Page                          Custom          NPSP_Settings
+    Open Main Menu                      System Tools
+    Click Link With Text                Advanced Mapping for Data Import & Gift Entry
+    Click Configure Advanced Mapping
+    Wait Until Page Contains Element    npsp:npsp_settings.page_error:warning,${object_group} : ${field} (${field}__c)
+    View Field Mappings Of The Object   Account 1
+    Wait Until Page Contains Element    npsp:npsp_settings.page_error:warning,${object_group} : ${field} (${field}__c)
+    Page Should Contain Element         npsp:npsp_settings.field_error:custom_acc_text__c
+
+Verify No Errors Displayed on AM Page And Object Group
+    [Documentation]         Verifies error is not thrown on Advanced mapping and object group page for given field mapping
+    [Arguments]             ${object_group}     ${field}
+    Go To Page                          Custom          NPSP_Settings
+    Open Main Menu                      System Tools
+    Click Link With Text                Advanced Mapping for Data Import & Gift Entry
+    Click Configure Advanced Mapping
+    Page Should Not Contain Locator     npsp_settings.page_error    warning     ${object_group} : ${field} (${field}__c)
+    Page Should Not Contain Locator     gift_entry.page_error
+    View Field Mappings Of The Object   Account 1
+    Page Should Not Contain Locator     npsp_settings.page_error    warning     ${object_group} : ${field} (${field}__c)
+    Wait For Locator Is Not Visible     npsp_settings.field_error   ${field}__c
+
+Change Object Permissions
+    [Documentation]  Adds or removes the Create, Read, Edit and Delete permissions for the specified object on the specified permission set..
+    [Arguments]  ${action}  ${objectapiname}  ${permset}
+
+
+    ${removeobjperms} =  Catenate  SEPARATOR=\n
+    ...  ObjectPermissions objperm;
+    ...  objperm = [SELECT Id, PermissionsRead, PermissionsEdit, PermissionsCreate, PermissionsDelete FROM ObjectPermissions 
+    ...  WHERE parentId IN ( SELECT id FROM permissionset WHERE PermissionSet.Name = '${permset}') 
+    ...  AND SobjectType='${objectapiname}']; 
+    ...  objperm.PermissionsRead = false; 
+    ...  objperm.PermissionsEdit = false; 
+    ...  objperm.PermissionsCreate = false; 
+    ...  objperm.PermissionsDelete = false; 
+    ...  update objperm; 
+
+    ${addobjperms} =  Catenate  SEPARATOR=\n
+    ...  String permid = [SELECT id FROM permissionset WHERE PermissionSet.Name = '${permset}'].id;
+    ...  ObjectPermissions objperm = New ObjectPermissions(PermissionsRead = true, PermissionsEdit = true, PermissionsCreate = true, 
+    ...  PermissionsDelete = true, ParentId = permid, SobjectType='${objectapiname}');
+    ...  insert objperm;
+
+    Run Keyword if  "${action}" == "remove"
+    ...             Run Task  execute_anon
+    ...             apex= ${removeobjperms}
+
+    Run Keyword if  "${action}" == "add"
+    ...             Run Task  execute_anon
+    ...             apex= ${addobjperms}
+
+Change Field Permissions
+    [Documentation]  Adds or removes the Create, Read, Edit and Delete permissions for the specified object field on the specified permission set.
+    [Arguments]  ${action}  ${objectapiname}  ${fieldapiname}  ${permset}
+
+    ${removefieldperms} =  Catenate  SEPARATOR=\n
+    ...  FieldPermissions fldperm;
+    ...  fldperm = [SELECT Id, Field, PermissionsRead, PermissionsEdit FROM FieldPermissions 
+    ...  WHERE parentId IN ( SELECT id FROM permissionset WHERE PermissionSet.Name = '${permset}')
+    ...  AND SobjectType='${objectapiname}'
+    ...  AND Field='${objectapiname}.${fieldapiname}'];        
+    ...  fldperm.PermissionsRead = false;
+    ...  fldperm.PermissionsEdit = false;
+    ...  update fldperm;
+
+    ${addfieldperms} =  Catenate  SEPARATOR=\n
+    ...  String permid = [SELECT id FROM permissionset WHERE PermissionSet.Name = '${permset}'].id;
+    ...  FieldPermissions fldperm = New FieldPermissions(PermissionsRead = true, PermissionsEdit = true,
+    ...  ParentId = permid, Field = '${objectapiname}.${fieldapiname}', SobjectType='${objectapiname}');
+    ...  insert fldperm;
+
+    Run Keyword if  "${action}" == "remove"
+    ...             Run Task  execute_anon
+    ...             apex= ${removefieldperms}
+
+    Run Keyword if  "${action}" == "add"
+    ...             Run Task  execute_anon
+    ...             apex= ${addfieldperms}
+
+Object Permissions Cleanup
+   [Documentation]  Resets all object permissions in case a test fails before they are restored. Skips the reset if the permissions have already been added back.
+   [Arguments]  ${objectapiname}  ${permset}
+ 
+   ${addobjback} =  Catenate  SEPARATOR=\n
+   ...  List<ObjectPermissions> checkperms = [SELECT PermissionsRead FROM ObjectPermissions 
+   ...  WHERE parentId IN ( SELECT id FROM permissionset WHERE PermissionSet.Name = '${permset}') AND
+   ...  SobjectType = '${objectapiname}'];
+   ...  if (checkperms.isEmpty()) {
+   ...  String permid = [SELECT id FROM permissionset WHERE PermissionSet.Name = '${permset}'].id;
+   ...  ObjectPermissions objperm = New ObjectPermissions(PermissionsRead = true, PermissionsEdit = true, PermissionsCreate = true, 
+   ...  PermissionsDelete = true, ParentId = permid, SobjectType = '${objectapiname}');
+   ...  insert objperm; }
+   ...  else { System.debug('Permissions Exist, skipping.'); }
+ 
+   Run Task  execute_anon  apex=${addobjback}
+
+
+Field Permissions Cleanup
+   [Documentation]  Resets all field permissions in case a test fails before they are restored. Skips the reset if the permissions have already been added back.
+   [Arguments]  ${objectapiname}  ${fieldapiname}  ${permset}
+ 
+   ${ns} =  Get NPSP Namespace Prefix
+ 
+   ${addfieldback} =  Catenate  SEPARATOR=\n
+   ...  List<FieldPermissions> checkperms = [SELECT PermissionsRead FROM FieldPermissions 
+   ...  WHERE parentId IN ( SELECT id FROM permissionset WHERE PermissionSet.Name = '${permset}') AND
+   ...  SobjectType = '${objectapiname}' AND Field = '${objectapiname}.${fieldapiname}'];
+   ...  if (checkperms.isEmpty()) {
+   ...  String permid = [SELECT id FROM permissionset WHERE PermissionSet.Name = '${permset}'].id;
+   ...  FieldPermissions fldperm = New FieldPermissions(PermissionsRead = true, PermissionsEdit = true, 
+   ...  ParentId = permid, Field = '${objectapiname}.${fieldapiname}', SobjectType = '${objectapiname}');
+   ...  insert fldperm; }
+   ...  else { System.debug('Permissions Exist, skipping.'); }
+ 
+   Run Task  execute_anon  apex=${addfieldback}

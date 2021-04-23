@@ -56,7 +56,7 @@
                         <c-ge-review-donations ontogglemodal={toggleModal}
                                                onchangeselecteddonation={handleChangeSelectedDonation}
                                                donor-id={donorId}
-                                               selected-donation={selectedDonation}>
+                                               selected-donation={selectedDonationCopyForReviewDonationsModal}>
                         </c-ge-review-donations>
                     </lightning-layout-item>
                 </template>
@@ -80,7 +80,8 @@
                                           for:item='errorMessageWrapper'>
                                     <li key={errorMessageWrapper.index}>
                                         <p>{errorMessageWrapper.errorMessage}</p>
-                                        <ul class="slds-list_dotted slds-text-color_error">
+                                        <ul if:true={errorMessageWrapper.multilineMessages}
+                                            class="slds-list_dotted slds-text-color_error">
                                             <template for:each={errorMessageWrapper.multilineMessages}
                                                       for:item='error'>
                                                 <li key={error.index}>{error.message}</li>
@@ -100,15 +101,32 @@
                             </c-util-illustration>
                         </div>
                     </template>
+                    <template if:false={isSingleGiftEntry}>
+                        <template if:true={showMismatchedCurrencyWarning}>
+                            <div class="slds-notify slds-notify_alert payment-warn" role="alert">
+                                <span class="slds-assistive-text">{CUSTOM_LABELS.commonWarning}</span>
+                                <span class="slds-icon_container slds-icon-utility-warning slds-m-right_x-small">
+                                <lightning-icon
+                                        variant="warning"
+                                        icon-name="utility:warning"
+                                        size="small">
+                                </lightning-icon>
+                            </span>
+                                <div class="slds-text-heading_small">
+                                    {mismatchedCurrencyWarning}
+                                </div>
+                            </div>
+                        </template>
+                    </template>
                     <template if:false={isPermissionError}
                               for:each={sections}
                               for:item='section'>
                         <c-ge-form-section key={section.id}
                                            section={section}
-                                           onlookuprecordselect={handleLookupRecordSelect}
-                                           onchangenameoncardfield={handleNameOnCardFieldChange}
-                                           widget-data={widgetData}
+                                           onregisterpaymentwidget={handleRegisterPaymentWidget}
+                                           widget-config={widgetConfig}
                                            onformfieldchange={handleFormFieldChange}
+                                           onformwidgetchange={handleFormWidgetChange}
                                            form-state={formState}>
                         </c-ge-form-section>
                     </template>

@@ -24,6 +24,8 @@
         <members>npsp__Data_Import_Field_Mapping.CO1_Number_7ee13403b</members>
         <members>npsp__Data_Import_Field_Mapping.CO1_Phone_2428a5c85</members>
         <members>npsp__Data_Import_Field_Mapping.CO1_Picklist_4cf822005</members>
+        <members>npsp__Data_Import_Field_Mapping.CO1_RecordType_d68ea8561</members>
+        <members>npsp__Data_Import_Field_Mapping.CO1_rt_picklist_a964477b6</members>
         <members>npsp__Data_Import_Field_Mapping.CO1_Text_f54081632</members>
         <members>npsp__Data_Import_Field_Mapping.CO1_currency_e2bb02f4b</members>
         <members>npsp__Data_Import_Field_Mapping.CO1_text2_1170a5c0f</members>
@@ -51,6 +53,8 @@
         <members>npsp__Data_Import_Field_Mapping.Contact1_Title_61b1fd1c3</members>
         <members>npsp__Data_Import_Field_Mapping.Contact1_Work_Email_a92606408</members>
         <members>npsp__Data_Import_Field_Mapping.Contact1_Work_Phone_af62af3dc</members>
+        <members>npsp__Data_Import_Field_Mapping.Contact1_Picklisttocheckbox_6c4d96932</members>
+        <members>npsp__Data_Import_Field_Mapping.Contact1_DI_Checkboxtocheckbox_57e8f3cb8</members>
         <members>npsp__Data_Import_Field_Mapping.Contact2_Alternate_Email_cde1c9606</members>
         <members>npsp__Data_Import_Field_Mapping.Contact2_Birthdate_e72ae3e8d</members>
         <members>npsp__Data_Import_Field_Mapping.Contact2_First_Name_718575e81</members>

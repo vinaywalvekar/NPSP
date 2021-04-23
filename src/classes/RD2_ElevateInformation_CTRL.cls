@@ -55,17 +55,50 @@ public with sharing class RD2_ElevateInformation_CTRL {
     * @param recordId Recurring Donation Id
     * @return Map<String, Object> Data value by key
     */
-    @AuraEnabled(cacheable=false)
-    public static Map<String, Object> getData(Id recordId) {
+    @AuraEnabled(cacheable=true)
+    public static Map<String, Object> getPermissionData(Id recordId) {
         Map<String, Object> data = new Map<String, Object>();
 
         try {
             data = new Map<String, Object> {
-                'isElevateCustomer' => RD2_ElevateIntegrationService.isElevateCreateEnabled(),
-                'alert' => RD2_VisualizeScheduleController.getValidationAlert(recordId),
-                'hasFieldPermissions' => hasFieldPermissions(),
-                'errorMessage' => getLatestErrorMessage(recordId)
+                'isElevateCustomer' => RD2_ElevateIntegrationService.isIntegrationEnabled()
             };
+
+            Boolean hasRDUpdatePermission = UTIL_Permissions.canUpdate('npe03__Recurring_Donation__c', false);
+
+            Boolean hasKeyRequiredFieldReadPermissions = hasReadPermissionsToFields(new Set<String>{
+                UTIL_Namespace.StrTokenNSPrefix('Status__c'),
+                UTIL_Namespace.StrTokenNSPrefix('ClosedReason__c'),
+                UTIL_Namespace.StrTokenNSPrefix('CommitmentId__c')
+            });
+
+            Boolean hasKeyFieldsUpdatePermissions = hasUpdatePermissionsToFields(new Set<String>{
+                UTIL_Namespace.StrTokenNSPrefix('CardLast4__c'),
+                UTIL_Namespace.StrTokenNSPrefix('CardExpirationMonth__c'),
+                UTIL_Namespace.StrTokenNSPrefix('CardExpirationYear__c')
+            });
+
+            data.put('hasFieldPermissions', hasKeyRequiredFieldReadPermissions);
+            data.put('hasFieldUpdatePermission', hasKeyFieldsUpdatePermissions);
+            data.put('hasRDSObjectUpdatePermission', hasRDUpdatePermission);
+
+            if (hasKeyRequiredFieldReadPermissions) {
+                data.put('alert', RD2_VisualizeScheduleController.getValidationAlert(recordId));
+            }
+
+            data.put('showLastFourDigits', hasReadPermissionsToFields(new Set<String>{
+                UTIL_Namespace.StrTokenNSPrefix('CardLast4__c'),
+                UTIL_Namespace.StrTokenNSPrefix('ACH_Last_4__c') }
+            ));
+            data.put('showExpirationDate', hasReadPermissionsToFields(new Set<String>{
+                UTIL_Namespace.StrTokenNSPrefix('CardExpirationMonth__c'),
+                UTIL_Namespace.StrTokenNSPrefix('CardExpirationYear__c') }
+            ));
+
+            if (RD2_ElevateIntegrationService.isIntegrationEnabled()) {
+                PS_IntegrationServiceConfig.Service service = new PS_IntegrationServiceConfig.Service();
+                data.put('commitmentURLPrefix', service.getViewURLPrefix(PS_IntegrationServiceConfig.VIEW_TYPE.COMMITMENT));
+            }
 
         } catch (Exception e) {
             UTIL_AuraEnabledCommon.throwAuraHandledException(e.getMessage());
@@ -74,38 +107,15 @@ public with sharing class RD2_ElevateInformation_CTRL {
         return data;
     }
 
-    /**
-     * @description Checks if the user has access for fields retrieved by the Elevate information widget
-     * @return Boolean
-     */
-    private static Boolean hasFieldPermissions() {
-        Set<String> requiredFields = new Set<String>{
-            UTIL_Namespace.StrTokenNSPrefix('Status__c'),
-            UTIL_Namespace.StrTokenNSPrefix('ClosedReason__c'),
-            UTIL_Namespace.StrTokenNSPrefix('CommitmentId__c')
-        };
-
-        Boolean hasPermissions = true;
-
-        for (String fld : requiredFields) {
-            DescribeFieldResult dfr = UTIL_Describe.getFieldDescribe('npe03__Recurring_Donation__c', fld);
-            if (!dfr.isAccessible()) {
-                hasPermissions = false;
-                break;
-            }
-        }
-
-        return hasPermissions;
-    }
-
     /***
-     * @description Displays the latest error when latest payment could not be charged or
-     * any other issue with the recurring commitment in Elevate
-     * @param recordId Recurring Donation Id
-     * @return String The latest error message if no successful payment is created after it.
-     */
-    private static String getLatestErrorMessage(Id recordId) {
-        Error__c error = finder.getLatestError(recordId);
+    * @description Displays the latest error when latest payment could not be charged or
+    * any other issue with the recurring commitment in Elevate
+    * @param recordId Recurring Donation Id
+    * @return String The latest error message if no successful payment is created after it.
+    */
+    @AuraEnabled(cacheable=false)
+    public static String getLatestErrorMessage(Id recordId) {
+        Error__c error = new ERR_LogService().getLatestError(recordId);
 
         if (error == null) {
             return null;
@@ -123,30 +133,43 @@ public with sharing class RD2_ElevateInformation_CTRL {
             : null;
     }
 
+    /**
+     * @description Checks if the user has read access for fields retrieved by the Elevate information widget
+     * @return Boolean
+     */
+    private static Boolean hasReadPermissionsToFields(Set<String> requiredFields) {
+        Boolean hasPermissions = true;
+        for (String fld : requiredFields) {
+            DescribeFieldResult dfr = UTIL_Describe.getFieldDescribe('npe03__Recurring_Donation__c', fld);
+            if (!dfr.isAccessible()) {
+                hasPermissions = false;
+                break;
+            }
+        }
+        return hasPermissions;
+    }
+
+    /**
+     * @description Checks if the user has update access for fields retrieved by the Elevate information widget
+     * @return Boolean
+     */
+    private static Boolean hasUpdatePermissionsToFields(Set<String> requiredFields) {
+        Boolean hasPermissions = true;
+        for (String fld : requiredFields) {
+            DescribeFieldResult dfr = UTIL_Describe.getFieldDescribe('npe03__Recurring_Donation__c', fld);
+            if (!dfr.isUpdateable()) {
+                hasPermissions = false;
+                break;
+            }
+        }
+        return hasPermissions;
+    }
+
 
     /***
      * @description Retrieves records
      */
-    public without sharing class RecordFinder {
-
-        /***
-         * @description Returns the latest error (if any) for the provided record
-         * @param recordId Record Id
-         * @return Error__c
-         */
-        public Error__c getLatestError(Id recordId) {
-            List<Error__c> errors = [
-                SELECT Full_Message__c, CreatedDate
-                FROM Error__c
-                WHERE Related_Record_ID__c = :recordId
-                ORDER BY CreatedDate DESC
-                LIMIT 1
-            ];
-
-            return errors == null || errors.isEmpty()
-                ? null
-                : errors[0];
-        }
+    private without sharing class RecordFinder {
 
         /***
          * @description Returns the latest Closed Won Opportunity for the provided record

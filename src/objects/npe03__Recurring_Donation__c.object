@@ -13,6 +13,18 @@
         <label>Recurring Donations Entry Form Custom Fields</label>
     </fieldSets>
     <fields>
+        <fullName>ACH_Last_4__c</fullName>
+        <description>The last four digits of the bank account used for this transaction.</description>
+        <externalId>false</externalId>
+        <inlineHelpText>The last four digits of the bank account used for this transaction.</inlineHelpText>
+        <label>ACH Last 4</label>
+        <length>4</length>
+        <required>false</required>
+        <trackTrending>false</trackTrending>
+        <type>Text</type>
+        <unique>false</unique>
+    </fields>
+    <fields>
         <fullName>Always_Use_Last_Day_Of_Month__c</fullName>
         <defaultValue>false</defaultValue>
         <externalId>false</externalId>
@@ -346,6 +358,20 @@
         <required>false</required>
         <trackTrending>false</trackTrending>
         <type>Text</type>
+        <unique>false</unique>
+    </fields>
+    <fields>
+        <fullName>LastElevateVersionPlayed__c</fullName>
+        <description>An Integer that represents the last Elevate event version played resulting in an update to this Recurring Donation. Incremented automatically after each call to the Elevate API for changes. Used to prevent circular updates and to ensure the latest version is never overwritten.</description>
+        <externalId>false</externalId>
+        <inlineHelpText>An Integer that represents the last Elevate event version played resulting in an update to this Recurring Donation. Incremented automatically after each call to the Elevate API for changes. Used to prevent circular updates and to ensure the latest version is never overwritten.</inlineHelpText>
+        <label>Last Elevate Version Played</label>
+        <precision>18</precision>
+        <required>false</required>
+        <scale>0</scale>
+        <trackHistory>false</trackHistory>
+        <trackTrending>false</trackTrending>
+        <type>Number</type>
         <unique>false</unique>
     </fields>
     <fields>

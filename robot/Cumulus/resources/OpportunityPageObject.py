@@ -1,6 +1,8 @@
 from cumulusci.robotframework.pageobjects import DetailPage
 from cumulusci.robotframework.pageobjects import ListingPage
 from cumulusci.robotframework.pageobjects import pageobject
+from cumulusci.robotframework.utils import capture_screenshot_on_error
+
 from BaseObjects import BaseNPSPPage
 import time
 from NPSP import npsp_lex_locators
@@ -15,6 +17,7 @@ class OpportunityPage(BaseNPSPPage, DetailPage):
         """
         self.selenium.wait_until_location_contains("/lightning/r/Opportunity/",timeout=60,message="Current page is not a Opportunity detail view")
         self.selenium.wait_until_page_contains("Donation Information")
+        self.selenium.wait_until_page_contains("Delete")
 
     def ensure_opportunity_details_are_loaded(self,objectID, value):
         """ Navigate to the page with objectid mentioned
@@ -23,20 +26,27 @@ class OpportunityPage(BaseNPSPPage, DetailPage):
         self.pageobjects.go_to_page("Details", "Opportunity", objectID)
         self.npsp.navigate_to_and_validate_field_value("Opportunity Name", "contains", value)
 
+    @capture_screenshot_on_error
     def navigate_to_matching_gifts_page(self):
-        if self.npsp.latest_api_version == 50.0:
-            locator = npsp_lex_locators['manage_hh_page']['more_actions_btn']
-            self.selenium.wait_until_element_is_visible(locator)
-            self.salesforce._jsclick(locator)
-            time.sleep(2)
-        else:
-            self.npsp.click_more_actions_button()
-            time.sleep(2)
+        # if self.npsp.latest_api_version == 51.0:
+        locator = npsp_lex_locators['manage_hh_page']['more_actions_btn']
+        time.sleep(1)
+        self.selenium.wait_until_element_is_visible(locator,60)
+        self.selenium.click_element(locator)
+        time.sleep(2)
         self.selenium.click_link('Find Matched Gifts')
         self.npsp.choose_frame("vfFrameId")
+        # else:
+        #     self.npsp.click_more_actions_button()
+        #     time.sleep(2)
+        #     self.selenium.click_link('Find Matched Gifts')
+        #     self.npsp.choose_frame("vfFrameId")
 
     def navigate_to_writeoff_payments_page(self):
-        self.npsp.click_related_list_dd_button('Payments', 'Show one more action', 'Write Off Payments')
+        if self.npsp.latest_api_version==51.0:
+            self.npsp.click_related_list_dd_button('Payments', 'Show more actions', 'Writeoff_Payments')
+        else:
+            self.npsp.click_related_list_dd_button('Payments', 'Show one more action', 'Write Off Payments')
         self.npsp.wait_for_locator('frame','Write Off Remaining Balance')
         self.npsp.choose_frame("Write Off Remaining Balance")
         self.selenium.wait_until_page_contains("You are preparing to write off")
@@ -53,9 +63,6 @@ class OpportunityPage(BaseNPSPPage, DetailPage):
         self.npsp.select_value_from_dropdown ("Role",role)
         self.npsp.populate_modal_form(**kwargs)
         self.salesforce.click_modal_button("Save")
-
-
-
 
 @pageobject("Listing", "Opportunity")
 class OpportunityListingPage(BaseNPSPPage, ListingPage):

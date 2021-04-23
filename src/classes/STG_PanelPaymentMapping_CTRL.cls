@@ -41,15 +41,6 @@ public with sharing class STG_PanelPaymentMapping_CTRL extends STG_Panel {
     public override string idPanel() { return 'idPanelPaymentMapping'; }
 
     /*********************************************************************************************************
-    * @description NPSP namespace: an empty string if unmanaged, or 'npsp' if managed
-    */
-    public String getNamespace() {
-        String namespace = UTIL_Namespace.getNamespace();
-        if (String.isBlank(namespace)) return 'c';
-        return namespace;
-    }
-
-    /*********************************************************************************************************
     * @description Map of Field names to DisplayTypes
     */
     map<string, Schema.Displaytype> mapFieldTypes = new map<string, Schema.Displaytype>();
@@ -102,7 +93,7 @@ public with sharing class STG_PanelPaymentMapping_CTRL extends STG_Panel {
             'npe01__Opportunity__c', 'npe01__Paid__c', 'npe01__Payment_Amount__c', 'npe01__Payment_Date__c',
             'npe01__Written_Off__c'};
         Map<String, Schema.SObjectField> targetTokenMap = Schema.SObjectType.npe01__OppPayment__c.fields.getMap().clone();
-       
+
         //pop out the known fields
         for (String fieldName : paymentsFieldsToExclude) {
             fieldName = fieldName.toLowerCase();

@@ -102,8 +102,8 @@ global with sharing class Callable_API implements System.Callable {
                 Set<Id> rdIds = paramService
                     .withRequiredParamCheck()
                     .getSetId(CallableApiParameters.PARAM_RECORD_IDS);
-                RD2_ApiService rd2ApiSvc = new RD2_ApiService();
-                return rd2ApiSvc.querySchedules(rdIds);
+                    
+                return new RD2_ApiService().querySchedules(rdIds);
 
             } when 'rd2.queryinstallments' {
                 Date startDate = paramService
@@ -113,8 +113,8 @@ global with sharing class Callable_API implements System.Callable {
                 Set<Id> rdIds = paramService
                     .withRequiredParamCheck()
                     .getSetId(CallableApiParameters.PARAM_RECORD_IDS);
-                RD2_ApiService rd2ApiSvc = new RD2_ApiService();
-                return rd2ApiSvc.queryInstallments(startDate, endDate, rdIds);
+
+                return new RD2_ApiService().queryInstallments(startDate, endDate, rdIds);
 
             } when 'settings.enableenhancedrecurringdonations' {
                 Boolean scheduleJobsWhenComplete = paramService.getBoolean(CallableApiParameters.PARAM_SCHEDULE_JOBS, true);
@@ -145,6 +145,12 @@ global with sharing class Callable_API implements System.Callable {
             } when 'settings.enablecustomizablerollups' {
                 Boolean scheduleJobsWhenComplete = paramService.getBoolean(CallableApiParameters.PARAM_SCHEDULE_JOBS, true);
                 return new CRLP_EnablementService().enable(scheduleJobsWhenComplete);
+
+            } when 'apex.schedulejob' {
+                // This method schedules the specified Schedulable class using the specified job name & cron expression.
+                // It should only be used for Schedulable classes that are in the NPSP Managed Package.
+                // It returns the Job ID of the Scheduled Job.
+                return CallableApiApexDelegationService.handleApexScheduleJob(params);
 
             } when else {
                 throw new MalformedMethodInvocationException(

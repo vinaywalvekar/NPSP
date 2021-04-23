@@ -18,15 +18,18 @@ class RDListingPage(BaseNPSPPage, ListingPage):
     @capture_screenshot_on_error
     def wait_for_rd2_modal(self):
         """Based on the button name (Cancel)  or (Save) on the modal footer, selects and clicks on the respective button"""
-        self.builtin.sleep(1,"Wait Needed for now to wait for the new modal")
         btnlocator = npsp_lex_locators["button-with-text"].format("Save")
+        self.builtin.sleep(2,"Wait for the page to load fully")
         self.selenium.scroll_element_into_view(btnlocator)
+        self.selenium.wait_until_page_contains_element(btnlocator,timeout=60,error="Recurring Donations Modal window did not open")
         self.selenium.wait_until_element_is_visible(btnlocator,60)
     
     @capture_screenshot_on_error
     def click_rd2_modal_button(self, name):
         """Based on the button name (Cancel)  or (Save) on the modal footer, selects and clicks on the respective button"""
         btnlocator = npsp_lex_locators["button-with-text"].format(name)
+        self.builtin.sleep(2,"Wait for the elevate message to appear on the modal")
+        self.selenium.wait_until_element_is_visible(btnlocator,60)
         self.selenium.scroll_element_into_view(btnlocator)
         self.selenium.click_element(btnlocator)
 
@@ -41,6 +44,7 @@ class RDListingPage(BaseNPSPPage, ListingPage):
             self.selenium.scroll_element_into_view(locator)
             self.salesforce._jsclick(locator)
             self.selenium.wait_until_element_is_visible(selection_value)
+            self.selenium.scroll_element_into_view(selection_value)
             self.selenium.click_element(selection_value)
         else:
             self.builtin.log(f"dropdown element {dropdown} not present")
@@ -53,22 +57,22 @@ class RDListingPage(BaseNPSPPage, ListingPage):
         for key, value in kwargs.items():
             locator = npsp_lex_locators["erd"]["modal_input_field"].format(key)
             # Recurring Donation Name field only appears on a regression org hence this check
-            if key == "Recurring Donation Name" and ns=="npsp__":
+            if key == "Recurring Donation Name":
                 if self.npsp.check_if_element_exists(locator):
                     self.selenium.set_focus_to_element(locator)
                     self.salesforce._populate_field(locator, value)
                 else:
                     self.builtin.log(f"Element {key} not found")
-            if key in ("Amount", "Number of Planned Installments"):
+            if key in ("Amount","Number of Planned Installments"):
                 if self.npsp.check_if_element_exists(locator):
                     self.selenium.set_focus_to_element(locator)
                     self.salesforce._populate_field(locator, value)
                 else:
                     self.builtin.log(f"Element {key} not found")
+            if key in ("Donor Type","Payment Method","Day of Month","Recurring Type"):
+                self.select_value_from_rd2_modal_dropdown(key, value)
             if key in ("Account", "Contact"):
                 self.salesforce.populate_lookup_field(key, value)
-            else:
-                self.select_value_from_rd2_modal_dropdown(key, value)
 
 @pageobject("Details", "npe03__Recurring_Donation__c")
 class RDDetailPage(BaseNPSPPage, DetailPage):
@@ -79,9 +83,10 @@ class RDDetailPage(BaseNPSPPage, DetailPage):
             by verifying that the url contains '/view'
         """
         for i in range(3):
+            print(f"attempt to load page {i}")
             time.sleep(2)
             self.selenium.location_should_contain(
-                "/lightning/r/npe03__Recurring_Donation__c/",
+                "view",
                 message="Current page is not a Recurring Donations record view",
             )
             locator = npsp_lex_locators["bge"]["button"].format("Edit")
@@ -90,7 +95,7 @@ class RDDetailPage(BaseNPSPPage, DetailPage):
             if self.npsp.check_if_element_displayed(edit_button):
                 return
             else:
-                self.selenium.reload_page()
+                time.sleep(2)
                 i += 1
 
     def refresh_opportunities(self):
@@ -130,15 +135,12 @@ class RDDetailPage(BaseNPSPPage, DetailPage):
         edit_button = self.selenium.get_webelement(locator)
         self.selenium.wait_until_element_is_visible(edit_button,60)
         self.selenium.click_element(locator)
-        self.selenium.reload_page()
-        self.selenium.reload_page()
         time.sleep(3)
         btnlocator = npsp_lex_locators["button-with-text"].format("Save")
         self.selenium.wait_until_element_is_visible(btnlocator,60)
         self._populate_edit_status_values(**kwargs)
         self.selenium.scroll_element_into_view(btnlocator)
         self.selenium.click_element(btnlocator)
-        self.salesforce.wait_until_modal_is_closed()
 
     @capture_screenshot_on_error
     def _populate_edit_status_values(self, **kwargs):
@@ -159,7 +161,7 @@ class RDDetailPage(BaseNPSPPage, DetailPage):
                     self.selenium.wait_until_element_is_visible(locator)
                     self.selenium.scroll_element_into_view(locator)
                     self.salesforce._jsclick(locator)
-                    self.selenium.wait_until_element_is_visible(selection_value,30)
+                    self.selenium.wait_until_element_is_visible(selection_value,60)
                     self.selenium.scroll_element_into_view(selection_value)
                     self.selenium.click_element(selection_value)
                 else:
@@ -171,7 +173,9 @@ class RDDetailPage(BaseNPSPPage, DetailPage):
         view page, clicks the button and waits for the modal to appear"""
         locator = npsp_lex_locators["bge"]["button"].format("Pause")
         pause_button = self.selenium.get_webelement(locator)
-        self.selenium.wait_until_element_is_visible(pause_button)
+        self.selenium.wait_until_element_is_visible(pause_button,60)
+        self.builtin.sleep(1)
+        self.npsp._loop_is_text_present("Pause")
         self.selenium.click_element(locator)
         if type != "Closed":
             btnlocator = npsp_lex_locators["button-with-text"].format("Save")
@@ -379,7 +383,7 @@ class RDDetailPage(BaseNPSPPage, DetailPage):
             if rdtype == "Open":
                 next_year_value = next_year_value + (12-next_year_count)*int(amount)
             values['Current Year Value']=f"${curr_year_value}.00"
-            values['Next Year Value']=f"${ next_year_value}.00"
+            #values['Next Year Value']=f"${ next_year_value}.00"
             self.validate_field_values_under_section("Statistics",**values)
 
     @capture_screenshot_on_error
@@ -412,8 +416,8 @@ class RDDetailPage(BaseNPSPPage, DetailPage):
                 expected_dates.append(expected_date)
                 date_object = (expected_date + relativedelta(months=+1))
                 j = j + 1
-
             check =  any(item in expected_dates for item in actual_dates)
+            
             assert (
                 check == True
             ), "expected_dates {} doesn't match the actual_dates {}".format(

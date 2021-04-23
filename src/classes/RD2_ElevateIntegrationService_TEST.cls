@@ -42,7 +42,6 @@ public class RD2_ElevateIntegrationService_TEST {
 
     private static final String RD_SOBJECT_TYPE = String.valueOf(npe03__Recurring_Donation__c.SObjectType);
     private static final String LOG_TYPE_COMMITMENT_CREATE = RD2_ElevateIntegrationService.LOG_TYPE_COMMITMENT_CREATE;
-    private static final String LOG_TYPE_COMMITMENT_CANCEL = RD2_ElevateIntegrationService.LOG_TYPE_COMMITMENT_CANCEL;
 
     private static final TEST_SObjectGateway.RecurringDonationGateway rdGateway = new TEST_SObjectGateway.RecurringDonationGateway();
     private static final TEST_SObjectGateway.OpportunityGateway oppGateway = new TEST_SObjectGateway.OpportunityGateway();
@@ -195,32 +194,6 @@ public class RD2_ElevateIntegrationService_TEST {
 
         System.assertEquals(false, service.hasUpdatePermissions(rd, oldRd),
             'Non-Elevate user should have not permission to update Commitment Id on an active Elevate RD');
-    }
-
-    /***
-    * @description Verifies user can update Elevate Recurring Id (Commitment Id)
-    * from a temp value to the valid value
-    * on an active RD originated in Elevate when
-    * integration is enabled and user does not have permissions assigned.
-    * This scenario is applicable when user creates a new Recurring Donation on the RD entry form
-    * but connects the record to an Elevate commitment by specifying the Payment Method = Credit Card.
-    */
-    @isTest
-    private static void shouldAllowElevateRDUpdateWhenNonElevateUserChangesTempCommitmentId() {
-        RD2_EnablementService_TEST.setRecurringDonations2Enabled();
-        RD2_ElevateIntegrationService service = configureNonElevateUserService();
-
-        String tempCommitmentId = RD2_ElevateIntegrationService.TEMP_COMMITMENT_ID_PREFIX + UTIL_String.getGUID();
-
-        npe03__Recurring_Donation__c oldRd = getElevateRecurringDonationBaseBuilder()
-            .withCommitmentId(tempCommitmentId)
-            .build();
-        npe03__Recurring_Donation__c rd = getElevateRecurringDonationBaseBuilder()
-            .withCommitmentId(COMMITMENT_ID)
-            .build();
-
-        System.assertEquals(true, service.hasUpdatePermissions(rd, oldRd),
-            'Non-Elevate user should have permission to update Commitment Id from a temp value to the actual Id');
     }
 
     /***
@@ -650,101 +623,6 @@ public class RD2_ElevateIntegrationService_TEST {
         assertNoError();
     }
 
-    /**
-    * @description Verifies RD Close Reason will not be updated back
-    * to the user provided Closed Reason value
-    * when Elevate callout results in an error response.
-    */
-    @isTest
-    private static void shouldSetClosedReasonToErrorResponseMessageStatusWhenCancelFails() {
-        RD2_EnablementService_TEST.setRecurringDonations2Enabled();
-        enableElevateUserPermissions();
-        PS_IntegrationService.setConfiguration(PS_IntegrationServiceConfig_TEST.testConfig);
-
-        npe03__Recurring_Donation__c rd = getElevateRecurringDonationBaseBuilder().build();
-        insert rd;
-
-        Test.startTest();
-        UTIL_Http_TEST.mockBadRequestCalloutResponse();
-
-        String closedReason = 'Original Reason';
-        rd.ClosedReason__c = closedReason;
-        rd.Status__c = RD2_Constants.STATUS_CLOSED;
-        update rd;
-
-        Test.stopTest();
-
-        rd = rdGateway.getRecord(rd.Id);
-
-        String expectedMessage = UTIL_Http_TEST.BAD_REQUEST_MESSAGE;
-        System.assertEquals(expectedMessage, rd.ClosedReason__c,
-            'RD Closed Reason be set to the error response message');
-
-        assertCancelCommitmentError(expectedMessage, rd.Id);
-    }
-
-    /**
-    * @description Verifies RD Closed Reason will be switched to
-    * the user provided Closed Reason value
-    * when the Commitment in Elevate cannot be found.
-    */
-    @isTest
-    private static void shouldSetClosedReasonToUserSpecifiedValueWhenCommitmentCannotBeFound() {
-        RD2_EnablementService_TEST.setRecurringDonations2Enabled();
-        enableElevateUserPermissions();
-        PS_IntegrationService.setConfiguration(PS_IntegrationServiceConfig_TEST.testConfig);
-
-        npe03__Recurring_Donation__c rd = getElevateRecurringDonationBaseBuilder().build();
-        insert rd;
-
-        Test.startTest();
-        UTIL_Http_TEST.mockNotFoundCalloutResponse();
-
-        String closedReason = 'Original Reason';
-        rd.ClosedReason__c = closedReason;
-        rd.Status__c = RD2_Constants.STATUS_CLOSED;
-        update rd;
-
-        Test.stopTest();
-
-        rd = rdGateway.getRecord(rd.Id);
-        System.assertEquals(UTIL_Http_TEST.MESSAGE_NOT_FOUND, rd.ClosedReason__c,
-            'RD Closed Reason should contain the error response message');
-
-        assertCancelCommitmentError(UTIL_Http_TEST.MESSAGE_NOT_FOUND, rd.Id);
-    }
-
-    /**
-    * @description Verifies RD Closed Reason will be switched to
-    * the user provided Closed Reason value
-    * when the Commitment in Elevate is already cancelled.
-    */
-    @isTest
-    private static void shouldSetClosedReasonToUserSpecifiedValueWhenCommitmentIsAlreadyCancelled() {
-        RD2_EnablementService_TEST.setRecurringDonations2Enabled();
-        enableElevateUserPermissions();
-        PS_IntegrationService.setConfiguration(PS_IntegrationServiceConfig_TEST.testConfig);
-
-        npe03__Recurring_Donation__c rd = getElevateRecurringDonationBaseBuilder().build();
-        insert rd;
-
-        Test.startTest();
-        UTIL_Http_TEST.mockDataConflictCalloutResponse();
-
-        String closedReason = 'Original Reason';
-        rd.ClosedReason__c = closedReason;
-        rd.Status__c = RD2_Constants.STATUS_CLOSED;
-        update rd;
-
-        Test.stopTest();
-
-        rd = rdGateway.getRecord(rd.Id);
-        System.assertEquals(UTIL_Http_TEST.MESSAGE_DATA_CONFLICT, rd.ClosedReason__c,
-            'RD Closed Reason should contain the error response message');
-
-        assertCancelCommitmentError(UTIL_Http_TEST.MESSAGE_DATA_CONFLICT, rd.Id);
-    }
-
     /***
     * @description Should determine that event is from Elevate when Last Elevate Event Played changes
     */
@@ -811,7 +689,7 @@ public class RD2_ElevateIntegrationService_TEST {
     * @description Returns Elevate Recurring Donation with default values
     * @return TEST_RecurringDonationBuilder instance
     */
-    private static TEST_RecurringDonationBuilder getElevateRecurringDonationBaseBuilder() {
+    public static TEST_RecurringDonationBuilder getElevateRecurringDonationBaseBuilder() {
         return getRecurringDonationBaseBuilder()
             .withCommitmentId(COMMITMENT_ID);
     }
@@ -820,7 +698,7 @@ public class RD2_ElevateIntegrationService_TEST {
     * @description Returns Recurring Donation with default values
     * @return TEST_RecurringDonationBuilder instance
     */
-    private static TEST_RecurringDonationBuilder getRecurringDonationBaseBuilder() {
+    public static TEST_RecurringDonationBuilder getRecurringDonationBaseBuilder() {
         return TEST_RecurringDonationBuilder.constructEnhancedBuilder()
             .withContact(getContact().Id)
             .withDefaultValues()
@@ -937,20 +815,9 @@ public class RD2_ElevateIntegrationService_TEST {
     * @description Verifies no error is created
     * @return void
     */
-    private static void assertNoError() {
+    public static void assertNoError() {
         List<Error__c> errors = errorGateway.getRecords();
         System.assertEquals(0, errors.size(), 'No error should be logged: ' + errors);
-    }
-
-    /****
-    * @description Verifies an error is created with
-    * the specified error message and referencing expected record Id
-    * @param message Expected error message
-    * @param recordId Expected Recurring Donation Id
-    * @return void
-    */
-    private static void assertCancelCommitmentError(String message, Id recordId) {
-        assertError(message, recordId, LOG_TYPE_COMMITMENT_CANCEL);
     }
 
     /****
@@ -961,7 +828,7 @@ public class RD2_ElevateIntegrationService_TEST {
     * @param errorType Expected error type
     * @return void
     */
-    private static void assertError(String message, Id recordId, String errorType) {
+    public static void assertError(String message, Id recordId, String errorType) {
         List<Error__c> errors = errorGateway.getRecords();
         System.assertEquals(1, errors.size(), 'An error should be logged: ' + errors);
 

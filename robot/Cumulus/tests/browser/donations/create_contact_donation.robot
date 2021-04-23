@@ -9,7 +9,7 @@ Library         cumulusci.robotframework.PageObjects
 Suite Setup     Run keywords
 ...             Open Test Browser
 ...             Setup Test Data
-Suite Teardown  Delete Records and Close Browser
+Suite Teardown  Capture Screenshot and Delete Records and Close Browser
 
 ***Keywords***
 # Setup a contact with parameters specified
@@ -28,7 +28,7 @@ ${Stage_Type}  Closed Won
 Create Donation from a Contact
     [Documentation]                      Create Opportunity from Contact with closed-won status.
 
-    [tags]                               W-038461                 feature:Donations
+    [tags]                               W-038461                 feature:Donations         unstable             notonfeaturebranch
 
     Go To Page                           Details
     ...                                  Contact
@@ -39,9 +39,7 @@ Create Donation from a Contact
     Populate Modal Form
     ...                                  Stage=${Stage_Type}
     ...                                  Amount=${Amount}
-
-    Open Date Picker                     Close Date
-    Pick Date                            ${Date}
+    Select Date From Datepicker          Close Date                ${Date}
     Click Modal Button                   Save
     Wait Until Modal Is Closed
     ${value}                             Return Locator Value      alert

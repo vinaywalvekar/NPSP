@@ -122,14 +122,33 @@ public inherited sharing class PS_CommitmentRequest {
         set;
     }
 
+    /**
+    * @description Recurring Donation schedule service user to build schedules used in a commitment request
+    */
+    private RD2_ScheduleService scheduleService {
+        get {
+            if (scheduleService == null) {
+                scheduleService = new RD2_ScheduleService();
+            }
+            return scheduleService;
+        }
+        set;
+    }
+
     /***
-    * @description Creates an HttpRequest for a new commitment creation
+    * @description Creates an HttpRequest for a new commitment creation or
+    * existing commitment update depending on the prodived commitment Id
+    * @param commitmentId Elevate recurring commitment Id
     * @param jsonRequestBody JSON containing parameters for the purchase call request body
     * @return HttpRequest
     */
-    public HttpRequest buildCreateRequest(String jsonRequestBody) {
+    public HttpRequest buildRequest(String commitmentId, String jsonRequestBody) {
+        UTIL_Http.Method method = String.isBlank(commitmentId)
+            ? UTIL_Http.Method.POST
+            : UTIL_Http.Method.PATCH;
+
         return new PS_Request.Builder()
-            .withMethod(UTIL_Http.Method.POST)
+            .withMethod(method)
             .withEndpoint(PS_Request.ElevateEndpoint.COMMITMENT)
             .withRecommendedTimeout()
             .withBody(jsonRequestBody)
@@ -137,27 +156,63 @@ public inherited sharing class PS_CommitmentRequest {
     }
 
     /***
-    * @description Constructs the Commitment request body for the specified Recurring Donation
-    * @param recordId Recurring Donation Id
+    * @description Constructs the commitment request body for the specified Recurring Donation.
+    * The commitment Id is used to differentiate between the create and edit commitment request content.
+    * @param rd Recurring Donation record
     * @param token Payment Method Token
     * @return RequestBody
     */
-    public RequestBody getRequestBody(Id recordId, String token) {
-        RequestBody reqBody = new RequestBody()
-            .withMerchantId(configService.getMerchantIds())
-            .withGatewayId(configService.getGatewayIds())
-            .withPaymentMethodToken(token);
+    public RequestBody getRequestBody(npe03__Recurring_Donation__c rd, String token) {
+        Boolean isCreateCommitment = String.isBlank(rd.CommitmentId__c);
 
-        npe03__Recurring_Donation__c rd = getRecurringDonation(recordId);
+        return isCreateCommitment
+            ? getCreateRequestBody(rd, token)
+            : getUpdateRequestBody(rd, token);
+    }
+
+    /***
+    * @description Constructs the create commitment request body for the specified Recurring Donation.
+    * @param rd Recurring Donation record
+    * @param token Payment Method Token
+    * @return RequestBody
+    */
+    public RequestBody getCreateRequestBody(npe03__Recurring_Donation__c rd, String token) {
 
         String currencyCode = UserInfo.isMultiCurrencyOrganization()
             ? (String) rd.get('CurrencyIsoCode')
             : UserInfo.getDefaultCurrency();
 
-        reqBody.withCurrency(currencyCode);
+        Metadata metadata = new Metadata()
+            .withCampaignCode(rd.npe03__Recurring_Donation_Campaign__c);
+
+        ProductMetaData productMetaData = new ProductMetaData()
+            .withCampaign(rd.npe03__Recurring_Donation_Campaign__c)
+            .withOrigin(PS_Request.OriginType.CRM.name());
+    
+        RequestBody reqBody =  new RequestBody()
+            .withMerchantId(configService.getMerchantIds())
+            .withGatewayId(configService.getGatewayIds())
+            .withPaymentMethodToken(token)
+            .withCurrency(currencyCode)
+            .withMetadata(metadata)
+            .withProductMetaData(productMetaData);
 
         setDonorInfo(reqBody, rd);
-        setSchedules(reqBody, rd.RecurringDonationSchedules__r, currencyCode);
+        setSchedules(reqBody, scheduleService.buildNewSchedules(rd), currencyCode);
+
+        return reqBody;
+    }
+
+    /***
+    * @description Constructs the edit commitment request body for the specified Recurring Donation.
+    * @param rd Recurring Donation record
+    * @param token Payment Method Token
+    * @return RequestBody
+    */
+    private RequestBody getUpdateRequestBody(npe03__Recurring_Donation__c rd, String token) {
+        RequestBody reqBody = new RequestBody()
+            .withCommitmentId(rd.CommitmentId__c)
+            .withPaymentMethodToken(token);
 
         return reqBody;
     }
@@ -170,16 +225,22 @@ public inherited sharing class PS_CommitmentRequest {
     */
     @TestVisible
     private void setDonorInfo(RequestBody reqBody, npe03__Recurring_Donation__c rd) {
-        Boolean isContactDonor = rd.npe03__Contact__c != null
+        Contact contactDonor = rd.npe03__Contact__c != null
+            ? getContact(rd.npe03__Contact__c)
+            : null;
+
+        Boolean isHouseholdDonor = contactDonor != null
             && (
-                rd.npe03__Organization__c == null 
-                || rd.npe03__Organization__c == rd.npe03__Contact__r.AccountId
+                rd.npe03__Organization__c == null
+                || rd.npe03__Organization__c == contactDonor.AccountId
             );
 
-        if (isContactDonor) {
-            reqBody.withDonor(rd.npe03__Contact__r);
+        if (isHouseholdDonor) {
+            reqBody.withDonor(contactDonor);
+
         } else {
-            reqBody.withDonor(rd.npe03__Organization__r);
+            Account organization = getAccount(rd.npe03__Organization__c);
+            reqBody.withDonor(organization);
         }
     }
 
@@ -215,49 +276,6 @@ public inherited sharing class PS_CommitmentRequest {
             : currencyMultiplier;
     }
 
-    /**
-    * @description Queries Recurring Donation fields and related schedules
-    * @param recordId RecurringDonation.RecordId
-    * @return Recurring Donation object
-    */
-    @TestVisible
-    private npe03__Recurring_Donation__c getRecurringDonation(Id recordId) {
-        Set<String> fields = new Set<String>{
-            'Id',
-            'RecurringType__c',
-            'npe03__Organization__c',
-            'npe03__Organization__r.Name',
-            'npe03__Contact__c',
-            'npe03__Contact__r.AccountId',
-            'npe03__Contact__r.FirstName',
-            'npe03__Contact__r.LastName'
-        };
-
-        if (UserInfo.isMultiCurrencyOrganization()) {
-            fields.add('CurrencyIsoCode');
-        }
-
-        fields.add(getScheduleSubQuery());
-
-        String soql = new UTIL_Query()
-            .withFrom(npe03__Recurring_Donation__c.SObjectType)
-            .withSelectFields(fields)
-            .withWhere('Id = :recordId')
-            .withLimit(1)
-            .build();
-
-        return Database.query(soql);
-    }
-
-    /**
-     * @description Returns query on Recurring Donation Schedule
-     * @return String RD Schedule subquery used in the Recurring Donation SOQL
-     */
-    private String getScheduleSubQuery() {
-        Set<String> fields = new RD2_ScheduleService.ScheduleQueryHandler().getFields();
-
-        return '(SELECT ' + String.join(new List<String>(fields), ', ') + ' FROM RecurringDonationSchedules__r)';
-    }
 
     /**
      * @description Parses the response and returns the commitment data contained in the response body
@@ -267,7 +285,7 @@ public inherited sharing class PS_CommitmentRequest {
     public ResponseBody getCommitment(UTIL_Http.Response response) {
         ResponseBody commitment = new ResponseBody();
 
-        if (response != null 
+        if (response != null
             && response.statusCode == UTIL_Http.STATUS_CODE_CREATED
             && String.isNotBlank(response.body)
         ) {
@@ -275,6 +293,41 @@ public inherited sharing class PS_CommitmentRequest {
         }
 
         return commitment;
+    }
+
+    /***
+    * @description Retrieves Contact data specified as the donor on the Recurring Donation record
+    * that is not yet saved into database
+    * @param contactId Contact Id
+    * @return Contact
+    */
+    private Contact getContact(Id contactId) {
+        List<Contact> contacts = [
+            SELECT
+                AccountId, FirstName, LastName
+            FROM Contact
+            WHERE Id = :contactId
+            LIMIT 1
+        ];
+        
+        return contacts.isEmpty() ? null : contacts[0];
+    }
+
+    /***
+    * @description Retrieves Account data specified as the donor on the Recurring Donation record
+    * that is not yet saved into database
+    * @param accountId Account Id
+    * @return Account
+    */
+    private Account getAccount(Id accountId) {
+        List<Account> accounts = [
+            SELECT Name
+            FROM Account
+            WHERE Id = :accountId
+            LIMIT 1
+        ];
+        
+        return accounts.isEmpty() ? null : accounts[0];
     }
 
 
@@ -286,6 +339,7 @@ public inherited sharing class PS_CommitmentRequest {
         /***
          * Required properties
          */
+        public String id;
         public String firstName;
         public String lastName;
         public String merchantId;
@@ -297,6 +351,12 @@ public inherited sharing class PS_CommitmentRequest {
         public List<Schedule> schedules;
 
         /***
+         * Optional properties
+         */
+        public Metadata metadata;
+        public ProductMetaData productMetaData;
+
+        /***
          * @description Constructor
          */
         public RequestBody() {
@@ -304,6 +364,16 @@ public inherited sharing class PS_CommitmentRequest {
             currencyCode = UserInfo.getDefaultCurrency();
             type = CommitmentType.SUSTAINER.name();
             paymentMethodType = PaymentMethod.CARD.name();
+        }
+
+        /**
+         * @description Sets merchant Id
+         * @param commitmentId Recurring commitment Id
+         * @return RequestBody This request body instance
+         */
+        public RequestBody withCommitmentId(String commitmentId) {
+            this.id = commitmentId;
+            return this;
         }
 
         /**
@@ -398,6 +468,26 @@ public inherited sharing class PS_CommitmentRequest {
         }
 
         /**
+         * @description Sets metadata
+         * @param metadata Payments API metadata
+         * @return RequestBody This request body instance
+         */
+        public RequestBody withMetadata(Metadata metadata) {
+            this.metadata = metadata;
+            return this;
+        }
+
+        /**
+         * @description Sets product metadata
+         * @param productMetaData Payments API product metadata
+         * @return RequestBody This request body instance
+         */
+        public RequestBody withProductMetaData(productMetaData productMetaData) {
+            this.productMetaData = productMetaData;
+            return this;
+        }
+
+        /**
          * @description Returns this request body as a JSON string
          * @return String
          */
@@ -455,7 +545,7 @@ public inherited sharing class PS_CommitmentRequest {
         public String statusReason;
         public CardData cardData;
 
-        /** 
+        /**
          * @description Returns true if the commitment data has the id specified
          * @return Boolean
          */
@@ -463,7 +553,7 @@ public inherited sharing class PS_CommitmentRequest {
             return String.isNotBlank(id);
         }
 
-        /** 
+        /**
          * @description Returns true if the commitment has new or active status
          * @return Boolean
          */
@@ -471,16 +561,16 @@ public inherited sharing class PS_CommitmentRequest {
             return status == STATUS_NEW || status == STATUS_ACTIVE;
         }
 
-        /** 
+        /**
          * @description Returns true if the commitment has just been created
          * @return Boolean
          */
         public Boolean isCreated() {
-            return isActive() 
-                && statusReason == CommitmentStatusReason.COMMITMENT_CREATED.name(); 
+            return isActive()
+                && statusReason == CommitmentStatusReason.COMMITMENT_CREATED.name();
         }
 
-        /** 
+        /**
          * @description Returns true if the commitment credit card data has been returned
          * @return Boolean
          */
@@ -488,7 +578,7 @@ public inherited sharing class PS_CommitmentRequest {
             return cardData != null;
         }
 
-        /** 
+        /**
          * @description Returns credit card last 4 digits
          * @return String
          */
@@ -496,7 +586,7 @@ public inherited sharing class PS_CommitmentRequest {
             return hasCardData() ? cardData.last4 : null;
         }
 
-        /** 
+        /**
          * @description Returns credit card expiration month
          * @return String
          */
@@ -504,7 +594,7 @@ public inherited sharing class PS_CommitmentRequest {
             return hasCardData() ? cardData.expirationMonth : null;
         }
 
-        /** 
+        /**
          * @description Returns credit card expiration year
          * @return String
          */
@@ -520,5 +610,81 @@ public inherited sharing class PS_CommitmentRequest {
         public String last4;
         public String expirationMonth;
         public String expirationYear;
+    }
+
+    /***
+     * @description Metadata property on the commitment request
+     */
+    public class Metadata {
+        public String originType;
+        public String campaignCode;
+
+        /**
+         * @description Metadata constructor
+         */
+        public Metadata() {
+            //set defaults
+            this.originType = PS_Request.OriginType.CRM.name();
+        }
+
+        /**
+         * @description Sets campaign info
+         * @param campaignId campaign Id
+         * @return productMetaData This product metadata instance
+         */
+        public Metadata withCampaignCode(Id campaignId) {
+            this.campaignCode = campaignId;
+            return this;
+        }
+    }
+
+    /***
+    * @description Product metadata property on the commitment request
+    */
+    public class ProductMetaData {
+        public Origin origin;
+        public Campaign campaign;
+
+        /**
+        * @description Sets origin info
+        * @param type origin type
+        * @return productMetaData This product metadata instance
+        */
+        public ProductMetaData withOrigin(String type) {
+            this.origin = new Origin(type);
+            return this;
+        }
+
+        /**
+        * @description Sets campaign info
+        * @param campaignId campaign Id
+        * @return productMetaData This product metadata instance
+        */
+        public ProductMetaData withCampaign(Id campaignId) {
+            this.campaign = new Campaign(campaignId);
+            return this;
+        }
+    }
+
+    /***
+    * @description Origin property on the commitment product metadata request
+    */
+    public class Origin {
+        public String type;
+
+        public Origin(String type) {
+            this.type = type;
+        }
+    }
+
+    /***
+    * @description Campaign property on the commitment product metadata request
+    */
+    public class Campaign {
+        public String id;
+
+        public Campaign(Id campaignId) {
+            this.id = campaignId;
+        }
     }
 }

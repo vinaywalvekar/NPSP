@@ -1,5 +1,9 @@
 import { LightningElement, track, api, wire } from 'lwc';
-import { dispatch, handleError } from 'c/utilTemplateBuilder';
+import {
+    BATCH_CURRENCY_ISO_CODE,
+    dispatch,
+    handleError,
+} from 'c/utilTemplateBuilder';
 import { mutable, findIndexByProperty, isEmpty } from 'c/utilCommon';
 import TemplateBuilderService from 'c/geTemplateBuilderService';
 import GeLabelService from 'c/geLabelService';
@@ -35,6 +39,9 @@ import PAYMENT_ORIGIN_NAME_FIELD from '@salesforce/schema/DataImport__c.Payment_
 import PAYMENT_ORIGIN_TYPE_FIELD from '@salesforce/schema/DataImport__c.Payment_Origin_Type__c';
 import PAYMENT_STATUS_FIELD from '@salesforce/schema/DataImport__c.Payment_Status__c';
 import PAYMENT_TYPE_FIELD from '@salesforce/schema/DataImport__c.Payment_Type__c';
+import PAYMENT_ACH_LAST_4 from '@salesforce/schema/DataImport__c.Payment_ACH_Last_4__c';
+import PAYMENT_ACH_CODE from '@salesforce/schema/DataImport__c.Payment_ACH_Code__c';
+import PAYMENT_DONOR_COVER_AMOUNT from '@salesforce/schema/DataImport__c.Payment_Donor_Cover_Amount__c';
 
 const FIELD = 'field';
 const BOOLEAN_TYPE = 'BOOLEAN';
@@ -85,6 +92,9 @@ const EXCLUDED_FIELD_MAPPINGS_BY_SOURCE_API_NAME = [
     PAYMENT_ORIGIN_TYPE_FIELD.fieldApiName,
     PAYMENT_STATUS_FIELD.fieldApiName,
     PAYMENT_TYPE_FIELD.fieldApiName,
+    PAYMENT_ACH_LAST_4.fieldApiName,
+    PAYMENT_ACH_CODE.fieldApiName,
+    PAYMENT_DONOR_COVER_AMOUNT.fieldApiName
 ];
 
 const FIELD_BUNDLE_MASTER_NAMES = [
@@ -341,11 +351,18 @@ export default class geTemplateBuilderFormFields extends LightningElement {
     * @param {object} fieldMapping: An instance of Data_Import_Field_Mapping__mdt
     */
     checkIfFieldMappingIsAllowed(fieldMapping) {
+        if (this.isCurrencyIsoCodeFieldMapping(fieldMapping)) {
+            return false;
+        }
         const formFieldName = fieldMapping.Element_Type === FIELD ?
             fieldMapping.Source_Field_API_Name :
             fieldMapping.DeveloperName;
 
         return !EXCLUDED_FIELD_MAPPINGS_BY_SOURCE_API_NAME.includes(formFieldName);
+    }
+
+    isCurrencyIsoCodeFieldMapping(fieldMapping) {
+        return fieldMapping.Target_Field_API_Name === BATCH_CURRENCY_ISO_CODE;
     }
 
     /*******************************************************************************

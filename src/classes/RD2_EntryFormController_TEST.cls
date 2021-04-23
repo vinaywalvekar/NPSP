@@ -39,13 +39,13 @@ private with sharing class RD2_EntryFormController_TEST {
 
     private static final Date START_DATE = Date.newInstance(2019, 3, 1);
     private static final String COMMITMENT_ID = RD2_ElevateIntegrationService_TEST.COMMITMENT_ID;
-    private static final String TEMP_COMMITMENT_ID = RD2_ElevateIntegrationService.TEMP_COMMITMENT_ID_PREFIX + COMMITMENT_ID;
     private static final String PAYMENT_METHOD_TOKEN = 'token-abcd-efgh-ijkl-mnop-qrst';
     private static final String CARD_LAST_4 = '1234';
     private static final String CARD_EXPIRATION_MONTH = '11';
     private static final String CARD_EXPIRATION_YEAR = '2019';
 
     private static final TEST_SObjectGateway.RecurringDonationGateway rdGateway = new TEST_SObjectGateway.RecurringDonationGateway();
+    private static final TEST_SObjectGateway.ErrorGateway errorGateway = new TEST_SObjectGateway.ErrorGateway();
 
     /****
     * @description Creates data required for unit tests
@@ -97,11 +97,10 @@ private with sharing class RD2_EntryFormController_TEST {
     * in order to display the Elevate credit card widget if so.
     */
     @isTest
-    private static void shouldDisplayElevateWidgetWhenElevateEnabledAndPilotEnabledIsTrue() {
+    private static void shouldDisplayElevateWidgetWhenElevateEnabledIsTrue() {
         Id accountId =  UTIL_UnitTestData_TEST.mockId(Account.SObjectType);
 
         RD2_ElevateIntegrationService_TEST.enableElevateUserPermissions();
-        UTIL_FeatureEnablement_TEST.setPilotEnabledParameter(true);
 
         Test.startTest();
         Map<String, Object> orgSettingsByKey = RD2_EntryFormController.getRecurringSettings(accountId);
@@ -109,25 +108,6 @@ private with sharing class RD2_EntryFormController_TEST {
 
         System.assertEquals(true, ((Boolean) orgSettingsByKey.get('isElevateCustomer')),
             'The org should be Elevate customer');
-    }
-
-    /***
-    * @description Verifies whether the org is the Elevate customer
-    * in order to display the Elevate credit card widget if so.
-    */
-    @isTest
-    private static void shouldNotDisplayElevateWidgetWhenElevateEnabledAndPilotEnabledIsFalse() {
-        Id accountId =  UTIL_UnitTestData_TEST.mockId(Account.SObjectType);
-
-        RD2_ElevateIntegrationService_TEST.enableElevateUserPermissions();
-        UTIL_FeatureEnablement_TEST.setPilotEnabledParameter(false);
-
-        Test.startTest();
-        Map<String, Object> orgSettingsByKey = RD2_EntryFormController.getRecurringSettings(accountId);
-        Test.stopTest();
-
-        System.assertEquals(false, ((Boolean) orgSettingsByKey.get('isElevateCustomer')),
-            'The org should not be Elevate customer');
     }
 
     /***
@@ -164,6 +144,9 @@ private with sharing class RD2_EntryFormController_TEST {
     */
     @isTest
     private static void shouldReturnContactDonorType() {
+        //skip the test if Advancement is installed
+        if(ADV_PackageInfo_SVC.useAdv()) return;
+        
         RD2_EnablementService_TEST.setRecurringDonations2Enabled();
 
         npe03__Recurring_Donation__c rd = rdGateway.getRecords()[0];
@@ -237,35 +220,21 @@ private with sharing class RD2_EntryFormController_TEST {
     }
 
     /***
-    * @description Verifies Commitment Request Body is built as expected
-    */
-    @isTest
-    private static void shouldReturnCommitmentRequestBody() {
-        Id recordId = rdGateway.getRecords()[0].Id;
-
-        RD2_EntryFormController.CommitmentService service = new RD2_EntryFormController.CommitmentService();
-        PS_CommitmentRequest.RequestBody requestBody = service.getRequestBody(recordId, PAYMENT_METHOD_TOKEN);
-
-        System.assertNotEquals(null, requestBody, 'The Commitment request body should be converted successfully');
-        System.assertEquals(PAYMENT_METHOD_TOKEN, requestBody.paymentMethodToken, 'The payment token should match');
-    }
-
-    /***
     * @description Verifies Commitment record created response is returned upon successful creation
     */
     @isTest
-    private static void shouldReturnResponseWhenCommitmentIsCreated() {
+    private static void shouldReturnCreatedResponseWhenCreateCommitmentSucceeds() {
+        RD2_EnablementService_TEST.setRecurringDonations2Enabled();
         PS_IntegrationService.setConfiguration(PS_IntegrationServiceConfig_TEST.testConfig);
 
-        Id recordId = rdGateway.getRecords()[0].Id;
+        npe03__Recurring_Donation__c rd = buildRecurringDonation();
 
         Test.startTest();
         mockRecordCreatedCalloutResponse();
 
         RD2_EntryFormController.CommitmentService service = new RD2_EntryFormController.CommitmentService();
 
-        PS_CommitmentRequest.RequestBody requestBody = service.getRequestBody(recordId, PAYMENT_METHOD_TOKEN);
-        UTIL_Http.Response response = service.sendRequest(recordId, JSON.serialize(requestBody));
+        UTIL_Http.Response response = service.handleCommitment(rd, PAYMENT_METHOD_TOKEN);
         Test.stopTest();
 
         System.assertNotEquals(null, response, 'The Commitment response should be returned');
@@ -273,97 +242,129 @@ private with sharing class RD2_EntryFormController_TEST {
             'The response status code should match: ' + response);
     }
 
-    /***
-    * @description Verifies Recurring Donation fields are updated with the commitment data
-    * returned from Elevate on a successful commitment creation.
+    /**
+    * @description Verifies an error record will be created when an error response is received from the Elevate API.
     */
     @isTest
-    private static void shouldUpdateRDCommitmentIdWhenCommitmentIsCreated() {
+    private static void shouldCreateErrorRecordWhenElevateReturnsErrorResponse() {
         RD2_EnablementService_TEST.setRecurringDonations2Enabled();
         PS_IntegrationService.setConfiguration(PS_IntegrationServiceConfig_TEST.testConfig);
 
-        npe03__Recurring_Donation__c rd = TEST_RecurringDonationBuilder.constructEnhancedBuilder()
-            .withDefaultValues()
-            .withContact(getContact().Id)
-            .withAmount(100)
-            .withDateEstablished(START_DATE)
-            .withStartDate(START_DATE)
-            .withDayOfMonth('1')
-            .withCommitmentId(TEMP_COMMITMENT_ID)
-            .build();
-        insert rd;
+        npe03__Recurring_Donation__c rd = buildRecurringDonation();
 
         Test.startTest();
-        mockRecordCreatedCalloutResponse();
+        UTIL_Http_TEST.mockBadRequestCalloutResponse();
 
-        String jsonResponse = RD2_EntryFormController.createCommitment(rd.Id, PAYMENT_METHOD_TOKEN);
+        RD2_EntryFormController.handleCommitment(JSON.serialize(rd), PAYMENT_METHOD_TOKEN);
         Test.stopTest();
 
-        rd = rdGateway.getRecord(rd.Id);
-        System.assertEquals(COMMITMENT_ID, rd.CommitmentId__c,
-            'The Commitment Id should be saved on the RD record: ' + jsonResponse);
-        System.assertEquals(CARD_LAST_4, rd.CardLast4__c,
-            'The card last 4 value should be saved on the RD record: ' + jsonResponse);
-        System.assertEquals(CARD_EXPIRATION_MONTH, rd.CardExpirationMonth__c,
-            'The card expiration month value should be saved on the RD record: ' + jsonResponse);
-        System.assertEquals(CARD_EXPIRATION_YEAR, rd.CardExpirationYear__c,
-            'The card expiration year value should be saved on the RD record: ' + jsonResponse);
+        List<Error__c> errors = errorGateway.getRecords();
+        System.assertEquals(1, errors.size(),
+            'An error record should be created for an error response.');
+        System.assertEquals(rd.npe03__Contact__c, errors[0].Related_Record_Id__c,
+            'The error record should contain donor Contact Id.');
+        System.assertEquals(ERR_Handler_API.Context.Elevate.name(),errors[0].Context_Type__c,
+            'The error record context type should match with Elevate context.');
+        System.assert(errors[0].Full_Message__c.contains(UTIL_Http_TEST.BAD_REQUEST_MESSAGE),
+            'The error record should contain error response message.');
     }
-
-    /***
-    * @description Verifies Recurring Donation commitment fields are not updated
-    * when an error response is received from the Elevate API.
+    
+    /**
+    * @description Verifies an error record will be created when update paymnet commitment fail.
     */
     @isTest
-    private static void shouldNotUpdateRDCommitmentIdWhenElevateReturnsErrorResponse() {
+    private static void shouldCreateErrorRecordWhenUpdatePaymentInfoReturnsErrorResponse() {
         RD2_EnablementService_TEST.setRecurringDonations2Enabled();
         PS_IntegrationService.setConfiguration(PS_IntegrationServiceConfig_TEST.testConfig);
 
-        npe03__Recurring_Donation__c rd = TEST_RecurringDonationBuilder.constructEnhancedBuilder()
-            .withDefaultValues()
-            .withContact(getContact().Id)
-            .withAmount(100)
-            .withDateEstablished(START_DATE)
-            .withStartDate(START_DATE)
-            .withDayOfMonth('1')
-            .withCommitmentId(TEMP_COMMITMENT_ID)
-            .build();
+        npe03__Recurring_Donation__c rd = buildRecurringDonation();
         insert rd;
 
         Test.startTest();
         UTIL_Http_TEST.mockBadRequestCalloutResponse();
 
-        String jsonResponse = RD2_EntryFormController.createCommitment(rd.Id, PAYMENT_METHOD_TOKEN);
+        RD2_EntryFormController.handleUpdatePaymentCommitment(JSON.serialize(rd), PAYMENT_METHOD_TOKEN);
         Test.stopTest();
 
-        rd = rdGateway.getRecord(rd.Id);
-        System.assertEquals(TEMP_COMMITMENT_ID, rd.CommitmentId__c,
-            'The temp Commitment Id should stay when commitment cannot be created: ' + jsonResponse);
+        List<Error__c> errors = errorGateway.getRecords();
+        System.assertEquals(1, errors.size(),
+            'An error record should be created for an error response.');
+        System.assertEquals(rd.Id, errors[0].Related_Record_Id__c,
+            'The error record should contain donor Contact Id.');
+        System.assertEquals(ERR_Handler_API.Context.Elevate.name(),errors[0].Context_Type__c,
+            'The error record context type should match with Elevate context.');
+        System.assert(errors[0].Full_Message__c.contains(UTIL_Http_TEST.BAD_REQUEST_MESSAGE),
+            'The error record should contain error response message.');
     }
 
-    /***
-    * @description Verifies an exception is generated when Recurring Donation Id 
-    * is not provided as a prerequisite for the commitment creation
+    /**
+    * @description Verifies commitment success response is returned upon successful update 
     */
     @isTest
-    private static void shouldNotSentCommitmentRequestWhenRDIdIsNotProvided() {
+    private static void shouldReturnSuccessResponseWhenUpdatePaymentInfoIsSuccess() {
         RD2_EnablementService_TEST.setRecurringDonations2Enabled();
         PS_IntegrationService.setConfiguration(PS_IntegrationServiceConfig_TEST.testConfig);
 
-        Exception actualException;
+        npe03__Recurring_Donation__c rd = buildRecurringDonation();
+        insert rd;
+
+        rd = new npe03__Recurring_Donation__c(Id = rd.Id, CommitmentId__c = COMMITMENT_ID);
+
         Test.startTest();
+        UTIL_Http_TEST.mockRecordUpdateCalloutResponse(mockSuccessResponseBody());
+
+        String response = 
+            RD2_EntryFormController.handleUpdatePaymentCommitment(JSON.serialize(rd), PAYMENT_METHOD_TOKEN);
+        Test.stopTest();
+
+        Integer statusCode;
+        String status;
+        JSONParser parser = JSON.createParser(response);
+
+        while (parser.nextToken() != null) {
+            if(parser.getCurrentToken() == JSONToken.FIELD_NAME) {
+                if (parser.getText() == 'statusCode') {
+                    parser.nextToken();
+                    statusCode = parser.getIntegerValue();
+
+                } else if (parser.getText() == 'status') {
+                    parser.nextToken();
+                    status = parser.getText();
+                }
+            } 
+        }
+
+        System.assertNotEquals(null, response, 'The Commitment response should be returned');
+        System.assertEquals(UTIL_Http.STATUS_CODE_OK, statusCode,
+            'The response status code should match: ' + response);
+            System.assertEquals(UTIL_Http.STATUS_OK, status,
+            'The response status should match: ' + response);
+    }
+
+    /***
+    * @description Verifies Recurring Donation should be validate and handle any error before calling Elevate API
+    */
+    @isTest
+    private static void shouldThrowExceptionWhenRDFieldValueIsInvalid() {
+        PS_IntegrationService.setConfiguration(PS_IntegrationServiceConfig_TEST.testConfig);
+
+        npe03__Recurring_Donation__c rd = buildRecurringDonation();
+        rd.npe03__Amount__c = -100;
+
+        String errorMessage;
+
+        Test.startTest();
+
         try {
-            Id recordId = null;
-            RD2_EntryFormController.createCommitment(recordId, PAYMENT_METHOD_TOKEN);
-        } catch (Exception e) {
-            actualException = e;
+            RD2_EntryFormController.handleCommitment(JSON.serialize(rd), PAYMENT_METHOD_TOKEN);
+    
+        } catch(Exception ex) {
+            errorMessage = ex.getMessage();
         }
         Test.stopTest();
 
-        System.assertNotEquals(null, actualException,
-            'An exception should be generated when Recurring Donation Id is not provided');
-        System.assertEquals(System.Label.RD2_ErrorRDIdIsMissingForCommitment, actualException.getMessage(),
-            'The exception should be match');
+        System.assertEquals(System.Label.RD2_AmountMustBeValid, errorMessage,
+            'RD should be pre-validate before the Elevate Commitment API is called');
     }
     
 
@@ -402,6 +403,21 @@ private with sharing class RD2_EntryFormController_TEST {
             FROM Contact
             LIMIT 1
         ];
+    }
+
+    /****
+    * @description Returns a new Recurring Donation record
+    * @return npe03__Recurring_Donation__c
+    */
+    private static npe03__Recurring_Donation__c buildRecurringDonation() {
+        return TEST_RecurringDonationBuilder.constructEnhancedBuilder()
+            .withDefaultValues()
+            .withContact(getContact().Id)
+            .withAmount(100)
+            .withDateEstablished(START_DATE)
+            .withStartDate(START_DATE)
+            .withDayOfMonth('1')
+            .build();
     }
 
 }

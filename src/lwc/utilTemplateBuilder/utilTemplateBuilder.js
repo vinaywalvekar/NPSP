@@ -1,5 +1,4 @@
 /* eslint-disable @lwc/lwc/no-async-operation */
-import { ShowToastEvent } from 'lightning/platformShowToastEvent'
 import { isEmpty, isNotEmpty, deepClone, showToast } from 'c/utilCommon';
 
 // Import schema for additionally required fields for the template batch header
@@ -87,6 +86,8 @@ const CUSTOM_LABELS = GeLabelService.CUSTOM_LABELS;
 
 const ADVANCED_MAPPING = 'Data Import Field Mapping';
 
+const BATCH_CURRENCY_ISO_CODE = 'CurrencyIsoCode';
+
 // relevant Donation_Donor custom validation fields
 const DONATION_DONOR_FIELDS = {
     account1ImportedField:  DI_ACCOUNT1_IMPORTED_INFO.fieldApiName,
@@ -150,7 +151,8 @@ const EXCLUDED_BATCH_HEADER_FIELDS = [
     DI_BATCH_LAST_MODIFIED_DATE.fieldApiName,
     DI_BATCH_LAST_REFERENCED_DATE.fieldApiName,
     DI_BATCH_LAST_VIEWED_DATE.fieldApiName,
-    DI_BATCH_SYSTEM_MODSTAMP.fieldApiName
+    DI_BATCH_SYSTEM_MODSTAMP.fieldApiName,
+    BATCH_CURRENCY_ISO_CODE
 ];
 Object.freeze(EXCLUDED_BATCH_HEADER_FIELDS);
 
@@ -206,6 +208,12 @@ const lightningInputTypeByDataType = {
     'textarea': 'lightning-textarea',
     'combobox': 'lightning-combobox'
 }
+
+// values used to enable picklist-to-checkbox mappings
+const PICKLIST_TRUE = 'True';
+const PICKLIST_FALSE = 'False';
+const CHECKBOX_TRUE = 'true';
+const CHECKBOX_FALSE = 'false';
 
 /*******************************************************************************
 * @description Collects all the missing required field mappings. Currently only
@@ -300,6 +308,12 @@ const dispatch = (context, name, detail, bubbles = false, composed = false) => {
 * @param {object} error: Event holding error details
 */
 const handleError = (error) => {
+    let message = buildErrorMessage(error);
+
+    showToast(commonError, message, 'error', 'sticky');
+};
+
+const buildErrorMessage = (error) => {
     let message = commonUnknownError;
 
     // error.body is the error from apex calls
@@ -330,8 +344,8 @@ const handleError = (error) => {
         message = error.body.message;
     }
 
-    showToast(commonError, message, 'error', 'sticky');
-};
+    return message;
+}
 
 /*******************************************************************************
 * @description Creates a 'unique' id made to look like a UUID.
@@ -504,6 +518,31 @@ const addKeyToCollectionItems = (list) => {
     });
 }
 
+const BOOLEAN_MAPPING = 'BOOLEAN';
+const PICKLIST_MAPPING = 'PICKLIST';
+
+const isTrueFalsePicklist = (fieldMapping) => {
+    if (fieldMapping) {
+        return fieldMapping.Target_Field_Data_Type === BOOLEAN_MAPPING
+            && fieldMapping.Source_Field_Data_Type === PICKLIST_MAPPING;
+    }
+    return false;
+}
+
+const trueFalsePicklistOptions = () => {
+    const noneOpt = { label: CUSTOM_LABELS.commonLabelNone, value: CUSTOM_LABELS.commonLabelNone }
+    const trueOpt = { label: CUSTOM_LABELS.labelBooleanTrue, value: PICKLIST_TRUE }
+    const falseOpt = { label: CUSTOM_LABELS.labelBooleanFalse, value: PICKLIST_FALSE };
+    return [noneOpt, trueOpt, falseOpt];
+}
+
+const isCheckboxToCheckbox = (fieldMapping) => {
+    if (fieldMapping) {
+        return fieldMapping.Target_Field_Data_Type === BOOLEAN_MAPPING
+            && fieldMapping.Source_Field_Data_Type === BOOLEAN_MAPPING;
+    }
+}
+
 export {
     DEFAULT_FORM_FIELDS,
     ADDITIONAL_REQUIRED_BATCH_HEADER_FIELDS,
@@ -523,16 +562,25 @@ export {
     ACCOUNT1,
     DONATION_DONOR_FIELDS,
     DONATION_DONOR,
+    CHECKBOX_TRUE,
+    CHECKBOX_FALSE,
+    PICKLIST_TRUE,
+    PICKLIST_FALSE,
     dispatch,
     handleError,
+    buildErrorMessage,
     generateId,
     inputTypeByDescribeType,
+    isCheckboxToCheckbox,
+    isTrueFalsePicklist,
     lightningInputTypeByDataType,
     findMissingRequiredFieldMappings,
     findMissingRequiredBatchFields,
     checkPermissionErrors,
     getRecordFieldNames,
     setRecordValuesOnTemplate,
+    trueFalsePicklistOptions,
     getPageAccess,
-    addKeyToCollectionItems
+    addKeyToCollectionItems,
+    BATCH_CURRENCY_ISO_CODE
 }

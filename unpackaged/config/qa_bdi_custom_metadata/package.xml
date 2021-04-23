@@ -12,6 +12,8 @@
         <members>Data_Import_Field_Mapping.CO1_Phone_d399fb3fe</members>
         <members>Data_Import_Field_Mapping.CO1_Picklist_52bab1bba</members>
         <members>Data_Import_Field_Mapping.CO1_Picklist_57bf42e30</members>
+        <members>Data_Import_Field_Mapping.CO1_RecordType_d68ea8561</members>
+        <members>Data_Import_Field_Mapping.CO1_rt_picklist_a964477b6</members>
         <members>Data_Import_Field_Mapping.CO1_Text_9f7f926f9</members>
         <members>Data_Import_Field_Mapping.CO1_Text_c4f14f3a7</members>
         <members>Data_Import_Field_Mapping.CO1_currency_88bd4cc36</members>
@@ -29,6 +31,8 @@
         <members>Data_Import_Field_Mapping.CO3_Picklist_445f63ff6</members>
         <members>Data_Import_Field_Mapping.CO3_Picklist_e38aa0476</members>
         <members>Data_Import_Field_Mapping.CO3_Text_3532e6023</members>
+        <members>Data_Import_Field_Mapping.Contact1_Picklisttocheckbox_e160cbe8d</members>
+        <members>Data_Import_Field_Mapping.Contact1_DI_Checkboxtocheckbox_a613b636</members>
         <members>Data_Import_Object_Mapping.AccountSoftCredits_ee5babc24</members>
         <members>Data_Import_Object_Mapping.CustomObject1_7b96c6e1b</members>
         <members>Data_Import_Object_Mapping.CustomObject2_fe20bsyqx</members>
