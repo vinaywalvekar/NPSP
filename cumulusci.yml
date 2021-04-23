@@ -1191,10 +1191,10 @@ flows:
 
     run_beta_tests_managed:
         steps:
-            # 1:
-            #     flow: enable_rd2_managed
-            # 2:
-            #     flow: deploy_rollup_testing
+            1:
+                flow: enable_rd2_managed
+            2:
+                flow: deploy_rollup_testing
             3:
                 task: deploy_regression_tests
                 options:
@@ -1208,10 +1208,10 @@ flows:
 
     run_beta_tests:
         steps:
-            # 1:
-            #     flow: enable_rd2
-            # 2:
-            #     flow: deploy_rollup_testing
+            1:
+                flow: enable_rd2
+            2:
+                flow: deploy_rollup_testing
             3:
                 task: deploy_regression_tests
                 options:

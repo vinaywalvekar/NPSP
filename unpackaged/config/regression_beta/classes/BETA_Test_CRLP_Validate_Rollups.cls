@@ -16,29 +16,6 @@
 //   Rollups to the Membership RT only. This will lead to the validateRollups() failing for the
 //   Membership rollup in Customizable Rollups. The fix is to simply edit the Membership-Won Filter Group
 //   to create a rule for Opportunity.RecordType=Membership.
-//
-// - ALL TESTS ARE CONDUCTED USING EXECUTE ANONYMOUS; EXECUTING ONE METHOD AT A TIME IN THE FOLLOWING ORDER:
-// - The entire block below can be pasted into the ExecuteAnonymous window of DevConsole and then each task
-//   run individually by highlighting the command and clicking [Execute Highlighted].
-//
-//
-//   - STEP 1: Initial Setup - Delete any existing test data and recreate the data.
-//   - NOTE: WAIT for the @Future job to finish before moving onto Step 2
-//   CRLP_TEST_VALIDATE_ROLLUPS.deleteTestData();
-//   CRLP_TEST_VALIDATE_ROLLUPS.createTestDataASync();
-//
-//   - STEP 2: ExecuteLegacyRollups will complete synchronously.
-//   CRLP_TEST_VALIDATE_ROLLUPS.executeLegacyRollups();
-//   - ValidateRollups will either throw an exception with errors or succeed. Click [Debug] in the Log View for details
-//   CRLP_TEST_VALIDATE_ROLLUPS.validateRollups();
-//
-//   - STEP 3: ExecuteCustomizableRollups starts asynchronous batch jobs to complete the rollups.
-//   - NOTE: WAIT for all the CRLP batch jobs to finish before running the validateRollups() method.
-//   CRLP_TEST_VALIDATE_ROLLUPS.executeCustomizableRollups();
-//   CRLP_TEST_VALIDATE_ROLLUPS.validateRollups();
-//
-//   - STEP 4: Optional: Delete the test data when done
-//   CRLP_TEST_VALIDATE_ROLLUPS.deleteTestData();
 */
 @isTest
 public class BETA_Test_CRLP_Validate_Rollups {
