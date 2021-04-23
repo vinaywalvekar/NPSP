@@ -14,12 +14,10 @@
         <type>DateTime</type>
     </fields>
     <fields>
-        <fullName>Disable_Error_Handling__c</fullName>
+        <fullName>Deferred_Processing__c</fullName>
         <defaultValue>false</defaultValue>
-        <description>If checked, NPSP&apos;s error handling framework is disabled.</description>
         <externalId>false</externalId>
-        <inlineHelpText>If checked, NPSP&apos;s error handling framework is disabled.</inlineHelpText>
-        <label>Disable Error Handling</label>
+        <label>Deferred Processing</label>
         <trackTrending>false</trackTrending>
         <type>Checkbox</type>
     </fields>
@@ -30,6 +28,16 @@
         <externalId>false</externalId>
         <inlineHelpText>If selected, Health Check only checks your NPSP configuration settings for problems. Select this option if your organization has a large volume of records and Health Check is having problems completing.</inlineHelpText>
         <label>Disable Record Data Health Checks</label>
+        <trackTrending>false</trackTrending>
+        <type>Checkbox</type>
+    </fields>
+    <fields>
+        <fullName>Disable_Error_Handling__c</fullName>
+        <defaultValue>false</defaultValue>
+        <description>If checked, NPSP&apos;s error handling framework is disabled.</description>
+        <externalId>false</externalId>
+        <inlineHelpText>If checked, NPSP&apos;s error handling framework is disabled.</inlineHelpText>
+        <label>Disable Error Handling</label>
         <trackTrending>false</trackTrending>
         <type>Checkbox</type>
     </fields>

@@ -109,9 +109,9 @@ public without sharing class RD2_CancelCommitmentService {
         logger.processErrors();
 
         //Chain another queueable with Recurring Donations that should be retried or data GET
-        if (!queuedRecords.isEmpty()) {
-            System.enqueueJob(new RD2_QueueableService.CancelCommitmentService(queuedRecords));
-        }
+//        if (!queuedRecords.isEmpty()) {
+//            System.enqueueJob(new CancelCommitmentService(queuedRecords));
+//        }
     }
 
     /**

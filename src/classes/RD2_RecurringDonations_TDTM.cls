@@ -83,6 +83,8 @@ public class RD2_RecurringDonations_TDTM extends TDTM_Runnable {
         } set;
     }
 
+    private Boolean launchManager = false;
+
     /***
     * @description Trigger handler on Recurring Donations when enhancement is enabled
     * @param rds Trigger.new records
@@ -126,6 +128,11 @@ public class RD2_RecurringDonations_TDTM extends TDTM_Runnable {
         cancelCommitments(rds, oldRds, triggerAction);
 
         TDTM_ProcessControl.setRecursionFlag(TDTM_ProcessControl.flag.RD, false);
+
+        if (launchManager && DPQ_ManagerService.isDeferredProcessingOn()) {
+            DPQ_ManagerService.enqueueDPQManagerIfNeeded();
+        }
+
         return dmlActions;
     }
 
@@ -292,10 +299,16 @@ public class RD2_RecurringDonations_TDTM extends TDTM_Runnable {
             return;
         }
 
-        RD2_QueueableService.ElevateOpportunityMatcher service
-            = new RD2_QueueableService.ElevateOpportunityMatcher(rdIdByCommitmentId);
+        ElevateOpportunityMatcher service
+            = new ElevateOpportunityMatcher(rdIdByCommitmentId);
 
-        if (Limits.getQueueableJobs() < Limits.getLimitQueueableJobs()) {
+        if (DPQ_ManagerService.isDeferredProcessingOn()) {
+            String payload = JSON.serialize(new ElevateOpportunityMatcher(rdIdByCommitmentId));
+            insertDPQRecord(payload, 'Queueable', 'ElevateOpportunityMatcher');
+            launchManager = true;
+        }
+
+        else if (Limits.getQueueableJobs() < Limits.getLimitQueueableJobs()) {
             System.enqueueJob(service);
 
         } else {
@@ -350,8 +363,13 @@ public class RD2_RecurringDonations_TDTM extends TDTM_Runnable {
         }
 
         if (triggerAction == TDTM_Runnable.Action.AfterInsert && shouldEvaluateOppsSynchronouslyOnInsert(rds.size() > 1)) {
-            new RD2_QueueableService.EvaluateInstallmentOpportunities(rdIds, rdIdsWhereScheduleChanged)
+            new EvaluateInstallmentOpportunities(rdIds, rdIdsWhereScheduleChanged)
                 .executeOppEvaluationService();
+
+        } else if (DPQ_ManagerService.isDeferredProcessingOn()) {
+            String payload = JSON.serialize(new EvaluateInstallmentOpportunities(rdIds, rdIdsWhereScheduleChanged));
+            insertDPQRecord(payload, 'Queueable', 'EvaluateInstallmentOpportunities');
+            launchManager = true;
 
         } else {
             RD2_QueueableService.enqueueOppEvalService(rdIds, rdIdsWhereScheduleChanged);
@@ -484,7 +502,27 @@ public class RD2_RecurringDonations_TDTM extends TDTM_Runnable {
         }
 
         if (!commitmentRDs.isEmpty()) {
-            System.enqueueJob(new RD2_QueueableService.CancelCommitmentService(commitmentRDs));
+
+            if (DPQ_ManagerService.isDeferredProcessingOn()) {
+                String payload = JSON.serialize(new CancelCommitmentService(commitmentRDs));
+                insertDPQRecord(payload, 'Queueable', 'CancelCommitmentService');
+                launchManager = true;
+
+            } else {
+                System.enqueueJob(new CancelCommitmentService(commitmentRDs));
+            }
         }
+    }
+
+    private void insertDPQRecord(String payload, String jobType, String className) {
+        Deferred_Processing_Queue__c dpq = new Deferred_Processing_Queue__c(
+            Job_Id__c = UTIL_String.getGUID(),
+            Group_Id__c = UTIL_String.getGUID(),
+            Sequence__c = 1,
+            Async_Apex_Job_Type__c = jobType,
+            Transaction_Type__c = className,
+            Payload__c = payload
+        );
+        insert dpq;
     }
 }

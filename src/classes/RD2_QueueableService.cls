@@ -79,139 +79,139 @@ public class RD2_QueueableService {
         }
     }
 
-    /**
-     * @description Queueable service to process Installment Opportunities for a Recurring Donation
-     * that was inserted or modified.
-     */
-    public class EvaluateInstallmentOpportunities implements Queueable {
-        Set<Id> rdIds;
+//    /**
+//     * @description Queueable service to process Installment Opportunities for a Recurring Donation
+//     * that was inserted or modified.
+//     */
+//    public class EvaluateInstallmentOpportunities extends DPQ_QueueableBase {
+//        Set<Id> rdIds;
+//
+//        /**
+//        * @description Contains Recurring Donation Ids for which schedule has been changed
+//        */
+//        @TestVisible
+//        private Set<Id> rdIdsWhereScheduleChanged {
+//            get {
+//                if (rdIdsWhereScheduleChanged == null) {
+//                    rdIdsWhereScheduleChanged = new Set<Id>();
+//                }
+//                return rdIdsWhereScheduleChanged;
+//            } set;
+//        }
+//
+//        /***
+//         * @description Constructor
+//         * @param rdIds - the RD Ids to process in this Queueable action
+//         */
+//        public EvaluateInstallmentOpportunities(Set<Id> rdIds) {
+//            this.rdIds = rdIds;
+//        }
+//
+//        /***
+//         * @description Constructor
+//         * @param rdIds - the RD Ids to process in this Queueable action
+//         * @param rdIdsWhereScheduleChanged - Ids of Recurring Donations that have a changed schedule
+//         */
+//        public EvaluateInstallmentOpportunities(Set<Id> rdIds, Set<Id> rdIdsWhereScheduleChanged) {
+//            this.rdIds = rdIds;
+//            this.rdIdsWhereScheduleChanged = rdIdsWhereScheduleChanged;
+//        }
+//
+//        /**
+//         * @description Execute method called when the Queueable runs. Delegates to the
+//         * evaluation service
+//         * @param context queuableContext
+//         */
+//        public void execute(QueueableContext context) {
+//            if (rdIds == null || rdIds.isEmpty()) {
+//                return;
+//            }
+//
+//            executeOppEvaluationService();
+//        }
+//
+//        /**
+//         * @description Delegate processing of the Recurring Donations to the Evaluation Service
+//         */
+//        public void executeOppEvaluationService() {
+//            new RD2_OpportunityEvaluationService()
+//                .withRds(rdIds)
+//                .withScheduleChanged(rdIdsWhereScheduleChanged)
+//                .evaluateOpportunities();
+//        }
+//    }
 
-        /**
-        * @description Contains Recurring Donation Ids for which schedule has been changed
-        */
-        @TestVisible
-        private Set<Id> rdIdsWhereScheduleChanged {
-            get {
-                if (rdIdsWhereScheduleChanged == null) {
-                    rdIdsWhereScheduleChanged = new Set<Id>();
-                }
-                return rdIdsWhereScheduleChanged;
-            } set;
-        }
+//    /**
+//     * @description Queueable service to process inserted Recurring Donations that have a value
+//     * in the Elevate CommitmentId__c field.
+//     */
+//    public class ElevateOpportunityMatcher extends DPQ_QueueableBase {
+//        Map<String, Id> rdIdByCommitmentId;
+//
+//        /***
+//         * @description Constructor
+//         * @param rdIdByCommitmentId - Map of CommitmentId's to RecurringDonation.Id
+//         */
+//        public ElevateOpportunityMatcher(Map<String, Id> rdIdByCommitmentId) {
+//            this.rdIdByCommitmentId = rdIdByCommitmentId;
+//        }
+//
+//        /**
+//         * @description Execute method called when the Queueable runs. Delegates to the
+//         * evaluation service
+//         * @param context queuableContext
+//         */
+//        public void execute(QueueableContext context) {
+//            if (rdIdByCommitmentId == null || rdIdByCommitmentId.isEmpty()) {
+//                return;
+//            }
+//
+//            match();
+//        }
+//
+//        /**
+//         * @description Delegate processing of the Recurring Donations to the Evaluation Service
+//         */
+//        public void match() {
+//            new RD2_ElevateIntegrationService()
+//                .matchRecurringDonationsToOpps(rdIdByCommitmentId);
+//        }
+//    }
 
-        /***
-         * @description Constructor
-         * @param rdIds - the RD Ids to process in this Queueable action
-         */
-        public EvaluateInstallmentOpportunities(Set<Id> rdIds) {
-            this.rdIds = rdIds;
-        }
-
-        /***
-         * @description Constructor
-         * @param rdIds - the RD Ids to process in this Queueable action
-         * @param rdIdsWhereScheduleChanged - Ids of Recurring Donations that have a changed schedule
-         */
-        public EvaluateInstallmentOpportunities(Set<Id> rdIds, Set<Id> rdIdsWhereScheduleChanged) {
-            this.rdIds = rdIds;
-            this.rdIdsWhereScheduleChanged = rdIdsWhereScheduleChanged;
-        }
-
-        /**
-         * @description Execute method called when the Queueable runs. Delegates to the
-         * evaluation service
-         * @param context queuableContext
-         */
-        public void execute(QueueableContext context) {
-            if (rdIds == null || rdIds.isEmpty()) {
-                return;
-            }
-
-            executeOppEvaluationService();
-        }
-
-        /**
-         * @description Delegate processing of the Recurring Donations to the Evaluation Service
-         */
-        public void executeOppEvaluationService() {
-            new RD2_OpportunityEvaluationService()
-                .withRds(rdIds)
-                .withScheduleChanged(rdIdsWhereScheduleChanged)
-                .evaluateOpportunities();
-        }
-    }
-
-    /**
-     * @description Queueable service to process inserted Recurring Donations that have a value
-     * in the Elevate CommitmentId__c field.
-     */
-    public class ElevateOpportunityMatcher implements Queueable {
-        Map<String, Id> rdIdByCommitmentId;
-
-        /***
-         * @description Constructor
-         * @param rdIdByCommitmentId - Map of CommitmentId's to RecurringDonation.Id
-         */
-        public ElevateOpportunityMatcher(Map<String, Id> rdIdByCommitmentId) {
-            this.rdIdByCommitmentId = rdIdByCommitmentId;
-        }
-
-        /**
-         * @description Execute method called when the Queueable runs. Delegates to the
-         * evaluation service
-         * @param context queuableContext
-         */
-        public void execute(QueueableContext context) {
-            if (rdIdByCommitmentId == null || rdIdByCommitmentId.isEmpty()) {
-                return;
-            }
-
-            match();
-        }
-
-        /**
-         * @description Delegate processing of the Recurring Donations to the Evaluation Service
-         */
-        public void match() {
-            new RD2_ElevateIntegrationService()
-                .matchRecurringDonationsToOpps(rdIdByCommitmentId);
-        }
-    }
-
-    /**
-     * @description Queueable service to make callouts to Elevate payment services and cancel commitments
-     */
-    public class CancelCommitmentService implements Queueable, Database.AllowsCallouts {
-        List<RD2_CancelCommitmentService.RecordWrapper> commitmentRDs;
-
-        /**
-        * @description Constructor
-        * @param closedRDs Closed Recurring Donations containing Commitment Id
-        */
-        public CancelCommitmentService(List<RD2_CancelCommitmentService.RecordWrapper> closedRDs) {
-            this.commitmentRDs = closedRDs;
-        }
-
-        /**
-         * @description Cancel Commitments in Elevate payment services
-         * @param context queueableContext
-         */
-        public void execute(QueueableContext context) {
-            executeCancelCommitments();
-        }
-
-        /**
-         * @description Cancel Commitments in Elevate payment services
-         */
-        public void executeCancelCommitments() {
-            if (commitmentRDs == null || commitmentRDs.isEmpty()) {
-                return;
-            }
-
-            new RD2_CancelCommitmentService()
-                .cancelCommitments(commitmentRDs);
-        }
-    }
+//    /**
+//     * @description Queueable service to make callouts to Elevate payment services and cancel commitments
+//     */
+//    public class CancelCommitmentService extends DPQ_QueueableBase {
+//        List<RD2_CancelCommitmentService.RecordWrapper> commitmentRDs;
+//
+//        /**
+//        * @description Constructor
+//        * @param closedRDs Closed Recurring Donations containing Commitment Id
+//        */
+//        public CancelCommitmentService(List<RD2_CancelCommitmentService.RecordWrapper> closedRDs) {
+//            this.commitmentRDs = closedRDs;
+//        }
+//
+//        /**
+//         * @description Cancel Commitments in Elevate payment services
+//         * @param context queueableContext
+//         */
+//        public void execute(QueueableContext context) {
+//            executeCancelCommitments();
+//        }
+//
+//        /**
+//         * @description Cancel Commitments in Elevate payment services
+//         */
+//        public void executeCancelCommitments() {
+//            if (commitmentRDs == null || commitmentRDs.isEmpty()) {
+//                return;
+//            }
+//
+//            new RD2_CancelCommitmentService()
+//                .cancelCommitments(commitmentRDs);
+//        }
+//    }
 
     /**
      * @description Queues up Opp name update service to recalculate Opportunity name.
@@ -228,52 +228,52 @@ public class RD2_QueueableService {
         }
     }
 
-    /**
-     * @description Queueable service to recalculate Opportunity names
-     */
-    public class OpportunityNamingService implements Queueable {
-        List<Opportunity> updatedOpps;
-
-        /**
-        * @description Constructor
-        * @param updatedOpps Updated opportunities
-        */
-        public OpportunityNamingService(List<Opportunity> updatedOpps) {
-            this.updatedOpps = updatedOpps;
-        }
-
-        /**
-         * @description Update opportunity names
-         * @param context queueableContext
-         */
-        public void execute(QueueableContext context) {
-            refreshOppNames();
-        }
-
-        /**
-         * @description Update opportunity names
-         */
-        public void refreshOppNames() {
-            if (updatedOpps == null || updatedOpps.isEmpty()) {
-                return;
-            }
-
-            Map<Id, String> oppNameById = new Map<Id, String>();
-            for (Opportunity opp: updatedOpps) {
-                oppNameById.put(opp.Id, opp.Name);
-            }
-
-            OPP_OpportunityNaming.refreshOppNames(updatedOpps);
-
-            List<Opportunity> renamedOpps = new List<Opportunity>();
-            for (Opportunity opp: updatedOpps) {
-                if (!opp.Name.equalsIgnoreCase(oppNameById.get(opp.Id))) {
-                    renamedOpps.add(opp);
-                }
-            }
-
-            TDTM_ProcessControl.toggleTriggerState('Opportunity', 'RD2_RecurringDonationsOpp_TDTM', false);
-            update renamedOpps;
-        }
-    }
+//    /**
+//     * @description Queueable service to recalculate Opportunity names
+//     */
+//    public class OpportunityNamingService extends DPQ_QueueableBase {
+//        List<Opportunity> updatedOpps;
+//
+//        /**
+//        * @description Constructor
+//        * @param updatedOpps Updated opportunities
+//        */
+//        public OpportunityNamingService(List<Opportunity> updatedOpps) {
+//            this.updatedOpps = updatedOpps;
+//        }
+//
+//        /**
+//         * @description Update opportunity names
+//         * @param context queueableContext
+//         */
+//        public void execute(QueueableContext context) {
+//            refreshOppNames();
+//        }
+//
+//        /**
+//         * @description Update opportunity names
+//         */
+//        public void refreshOppNames() {
+//            if (updatedOpps == null || updatedOpps.isEmpty()) {
+//                return;
+//            }
+//
+//            Map<Id, String> oppNameById = new Map<Id, String>();
+//            for (Opportunity opp: updatedOpps) {
+//                oppNameById.put(opp.Id, opp.Name);
+//            }
+//
+//            OPP_OpportunityNaming.refreshOppNames(updatedOpps);
+//
+//            List<Opportunity> renamedOpps = new List<Opportunity>();
+//            for (Opportunity opp: updatedOpps) {
+//                if (!opp.Name.equalsIgnoreCase(oppNameById.get(opp.Id))) {
+//                    renamedOpps.add(opp);
+//                }
+//            }
+//
+//            TDTM_ProcessControl.toggleTriggerState('Opportunity', 'RD2_RecurringDonationsOpp_TDTM', false);
+//            update renamedOpps;
+//        }
+//    }
 }

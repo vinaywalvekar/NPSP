@@ -666,6 +666,7 @@ public without sharing class UTIL_CustomSettingsFacade {
         es.OverrideFeature_PilotEnabled__c = false;
         es.Enable_Debug__c = false;
         es.Respect_Duplicate_Rule_Settings__c = false;
+        es.Deferred_Processing__c = false;
     }
 
     private static void configBDESettings(Batch_Data_Entry_Settings__c bds) {
