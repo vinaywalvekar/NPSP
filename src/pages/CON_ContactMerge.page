@@ -541,8 +541,6 @@
                                                         value="{!$Label.conMergeBtnLabel}"
                                                         styleClass="slds-button slds-button_destructive"
                                                         id="mergeContacts"/>
-                                    <apex:actionFunction name="executeMergeContacts"
-                                                         action="{!mergeContacts}" />
                                     <button class="slds-button slds-button_neutral"
                                             data-dismiss="modal"
                                             data-target="merge_warning_modal"
