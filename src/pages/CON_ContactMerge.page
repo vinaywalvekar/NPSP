@@ -536,7 +536,8 @@
                             </div>
                             <div class="slds-modal__footer slds-theme_default">
                                 <div class="slds-x-small-buttons_horizontal">
-                                    <apex:commandButton onclick="mergeContacts(this)"
+                                    <apex:commandButton action="{!mergeContacts}"
+                                                        onclick="this.onclick=function(){return false;}"
                                                         value="{!$Label.conMergeBtnLabel}"
                                                         styleClass="slds-button slds-button_destructive"
                                                         id="mergeContacts"/>
@@ -553,16 +554,6 @@
                     <div class="slds-backdrop" tabindex="-1"></div>
                 </div>
             </apex:form>
-            <script>
-                function disableMergeButton(mergeContactButton) {
-                    mergeContactButton.disabled = 'disabled';
-                }
-
-                function mergeContacts(mergeContactButton) {
-                    disableMergeButton(mergeContactButton);
-                    executeMergeContacts();
-                }
-            </script>
             <script>
                 document.getElementById('{!$Component.mergeForm}').addEventListener(
                     'submit',
