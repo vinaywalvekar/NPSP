@@ -274,6 +274,7 @@
         <members>Contacts</members>
         <members>ContactsInLegacyHouseholds</members>
         <members>ContactsInLegacyHouseholds_TEST</members>
+        <members>CustomNotificationDemo</members>
         <members>EP_EngagementPlanTaskValidation_TDTM</members>
         <members>EP_EngagementPlanTaskValidation_TEST</members>
         <members>EP_EngagementPlans_TDTM</members>
@@ -3629,6 +3630,10 @@
         <members>GetStartedChecklistSection.Work_with_Records</members>
         <members>GetStartedChecklistSection.Your_Data</members>
         <name>CustomMetadata</name>
+    </types>
+    <types>
+        <members>Processed_Gifts</members>
+        <name>CustomNotificationType</name>
     </types>
     <types>
         <members>Account_Soft_Credit__c</members>

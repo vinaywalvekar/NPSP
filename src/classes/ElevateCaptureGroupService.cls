@@ -38,9 +38,14 @@ public virtual with sharing class ElevateCaptureGroupService {
     }
 
     public ElevateAuthorizedGift sendAddRequest(ElevateTokenizedGift tokenizedGift, String groupId) {
+        System.debug('GroupId '+ groupId);
+        System.debug('tokenizedGift '+ tokenizedGift);
+        System.debug('Request '+ addRequest(tokenizedGift, groupId));
         UTIL_Http.Response response = new UTIL_Http.RequestService().sendRequest(
                 addRequest(tokenizedGift, groupId)
         );
+
+        System.debug('Add response '+ response);
         ElevateAuthorizedGiftResponse authorizedGiftResponse = (ElevateAuthorizedGiftResponse)JSON.deserialize
                 (response.body, ElevateAuthorizedGiftResponse.class);
         checkForAuthorizedGiftErrorsIn(authorizedGiftResponse);

@@ -213,5 +213,5 @@
     <pluralLabel>Payment Services Configuration</pluralLabel>
     <searchLayouts/>
     <sharingModel>ReadWrite</sharingModel>
-    <visibility>Protected</visibility>
+    <visibility>Public</visibility>
 </CustomObject>

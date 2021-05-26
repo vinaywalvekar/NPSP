@@ -89,5 +89,6 @@ public inherited sharing class NPSP_Batch {
             }
         }
         update authorizedGifts.dataImports();
+        CustomNotificationDemo.notifyUsers(new Set<String>{UserInfo.getUserId()}, this.batchId);
     }
 }

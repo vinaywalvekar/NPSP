@@ -198,6 +198,7 @@ public with sharing class GE_GiftEntryController {
         ElevateAuthorizedGift authorizedGift;
         try {
             authorizedGift = captureGroupService.addToCaptureGroup(tokenizedGift, groupId);
+            System.debug('Authroized Gift: '+ authorizedGift);
         } catch (AuraHandledException ex) {
           UTIL_AuraEnabledCommon.throwAuraHandledException(ex.getMessage());
         }
