@@ -211,7 +211,11 @@ public class BDI_DataImportBatchStatus_TDTM extends TDTM_Runnable {
         }
 
         String getBatchStatus(Id batchId) {
-            return statusesById.get(batchId).getBatchStatus();
+            String status = statusesById.get(batchId).getBatchStatus();
+            if (status == BDI_DataImport_API.BATCH_STATUS_COMPLETED) {
+                CustomNotificationDemo.notifyUsers(new Set<String>{UserInfo.getUserId()}, batchId);
+            }
+            return status;
         }
 
         /**
